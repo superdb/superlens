@@ -344,6 +344,46 @@ body.running .status::before {
   background: var(--warn-bg);
   color: var(--warn-fg);
 }
+/* An error in the app's own words, such as an engine crash. */
+.message.error.prose {
+  font: inherit;
+  white-space: normal;
+}
+.message.prose p {
+  margin: 0;
+}
+.message.prose p + p {
+  margin-top: 6px;
+}
+.message.prose a {
+  color: inherit;
+  text-decoration: underline;
+}
+.message.prose button {
+  margin-left: 4px;
+  padding: 1px 8px;
+  font-size: 12px;
+}
+.message.prose details {
+  margin-top: 8px;
+}
+.message.prose summary {
+  font: 12px/1.5 var(--mono-font);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.message.prose pre {
+  margin: 8px 0 0;
+  font: 12px/1.5 var(--mono-font);
+  white-space: pre-wrap;
+}
+.message code {
+  font-family: var(--mono-font);
+  font-size: 12px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
 
 .results-body {
   position: relative;
