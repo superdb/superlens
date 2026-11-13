@@ -1,0 +1,10 @@
+# Headers for static hosts that read a _headers file (e.g., Cloudflare Pages,
+# Netlify).  The content security policy keeps the app from connecting to
+# any site but its own, so files opened in SuperLens can't be sent anywhere.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+
+/super.wasm
+  Content-Type: application/wasm

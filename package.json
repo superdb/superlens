@@ -1,0 +1,23 @@
+{
+  "name": "superlens",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Explore JSON, CSV, Parquet, and more with SuperSQL queries, entirely in your browser",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:app": "node scripts/build.mjs --app",
+    "build:wasm": "sh scripts/build-wasm.sh",
+    "dev": "node scripts/dev.mjs",
+    "serve": "node scripts/serve.mjs",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import ./test/register.mjs --test \"test/*.test.ts\"",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}
