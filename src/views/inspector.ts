@@ -1,9 +1,10 @@
 // The inspector: values as an expandable tree, like the inspector in zui.
+// Type values expand too, into the fields and members of their types.
 
 import type { Value } from "@superdb/super-ts"
 import { kindClass, sup, truncate } from "./cells.ts"
 import { VirtualList } from "./virtual.ts"
-import { TreeModel, openText, type Row } from "./tree.ts"
+import { TreeModel, holdsType, openText, typeText, typeTitle, valueTitle, type Row } from "./tree.ts"
 
 const ROW_HEIGHT = 22
 const INDENT = 16
@@ -51,7 +52,7 @@ export class InspectorView {
     if (!target) return
     const row = this.rows[Number(target.dataset.row)]
     if (!row) return
-    if (row.kind === "value" && row.expandable) {
+    if ((row.kind === "value" || row.kind === "type") && row.expandable) {
       // Don't collapse when the user is selecting text.
       if (window.getSelection()?.toString()) return
       this.model.toggle(row.path)
@@ -69,7 +70,8 @@ export class InspectorView {
     el.dataset.row = String(i)
     el.style.paddingLeft = `${8 + row.depth * INDENT}px`
     switch (row.kind) {
-      case "value": {
+      case "value":
+      case "type": {
         const toggle = document.createElement("span")
         toggle.className = "toggle"
         toggle.textContent = row.expandable ? (row.expanded ? "▾" : "▸") : ""
@@ -82,23 +84,31 @@ export class InspectorView {
           el.append(key, ": ")
         }
         const val = document.createElement("span")
-        if (row.expanded) {
-          val.className = "punct"
-          val.textContent = openText(row.value)
+        if (row.kind === "type") {
+          // Every part of a type, brackets included, is in the type color.
+          val.className = "k-type"
+          val.textContent = truncate(row.expanded ? openText(row) : typeText(row), MAX_PREVIEW)
+          el.title = row.expandable ? "" : truncate(typeTitle(row), 2000)
         } else {
-          val.className = row.expandable ? "k-container" : kindClass(row.value)
-          val.textContent = truncate(sup(row.value), MAX_PREVIEW)
+          const ofType = holdsType(row.value)
+          if (row.expanded) {
+            val.className = ofType ? "k-type" : "punct"
+            val.textContent = truncate(openText(row), MAX_PREVIEW)
+          } else {
+            val.className = row.expandable && !ofType ? "k-container" : kindClass(row.value)
+            val.textContent = truncate(sup(row.value), MAX_PREVIEW)
+          }
+          el.title = row.expandable ? "" : truncate(valueTitle(row.value), 2000)
         }
         el.append(val)
-        el.title = row.expandable ? "" : truncate(sup(row.value), 2000)
         break
       }
       case "close": {
         const toggle = document.createElement("span")
         toggle.className = "toggle"
         const t = document.createElement("span")
-        t.className = "punct"
-        t.textContent = row.text
+        t.className = row.ofType ? "k-type" : "punct"
+        t.textContent = truncate(row.text, MAX_PREVIEW)
         el.append(toggle, t)
         break
       }

@@ -56,7 +56,9 @@ HTML, JavaScript, CSS, and the query engine (`super.wasm`).
     copy it as SUP or JSON.
   * **Inspector** shows values as an expandable tree. Small results open
     fully, larger ones partially. Use *Expand all* and *Collapse all*, or
-    click a row to toggle it.
+    click a row to toggle it. Type values, such as the results of
+    `typeof(this)` or `superfuse(this)`, open the same way, into the fields
+    of their types.
   * **SUP** shows each value as a line of SUP. You can copy all of the lines
     or download them as `results.sup`.
 
@@ -101,7 +103,8 @@ HTML, JavaScript, CSS, and the query engine (`super.wasm`).
 * **[super-ts](https://github.com/superdb/super-ts)** decodes the BSUP
   results into typed values (`QueryResult`, `decodeBSUPStream`) and formats
   them as SUP. The views use its types and values directly: shapes for table
-  columns, `RecordValue.fieldAt` for cells, and `toString()` for SUP.
+  columns, `RecordValue.fieldAt` for cells, the `Type` inside a type value for
+  the inspector's type tree, and `toString()` for SUP.
 * **The views** (`src/views/`) are written in plain TypeScript and DOM. They're
   modeled on zui's table and inspector and are virtualized, so they only
   render the rows on screen and can scroll through hundreds of thousands
