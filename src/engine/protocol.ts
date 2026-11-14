@@ -33,3 +33,7 @@ export type FromWorker =
   | { type: "inputs-done"; id: number }
   | { type: "result"; id: number; bsup: Uint8Array; elapsedMs: number }
   | { type: "error"; id: number; message: string }
+  // The Go program exited, so the worker can't run anything else.  output
+  // is what Go printed about why (e.g., "fatal error: out of memory" or
+  // "panic: ...", followed by goroutine stacks).
+  | { type: "crashed"; outOfMemory: boolean; output: string }
