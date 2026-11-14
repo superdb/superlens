@@ -3,6 +3,7 @@
 import type { Value } from "@superdb/super-ts"
 import { Cancelled, Engine, EngineCrashed, EngineProblem, type QueryOutcome } from "./engine/engine.ts"
 import { sup, toJSON } from "./views/cells.ts"
+import { addSuperfuse } from "./superfuse.ts"
 import { bestView, type ViewName } from "./views/choose.ts"
 import { InspectorView } from "./views/inspector.ts"
 import { TableView } from "./views/table.ts"
@@ -84,6 +85,8 @@ export class App {
   private outcome: QueryOutcome | undefined
   private view: ViewName = "inspector"
   private userView: ViewName | undefined
+  // A view for the current results only, e.g., the inspector for Superfuse.
+  private resultView: ViewName | undefined
   private runSeq = 0
   private table = new TableView()
   private inspector = new InspectorView()
@@ -95,6 +98,7 @@ export class App {
   private formatSelect = $<HTMLSelectElement>("format-select")
   private limitSelect = $<HTMLSelectElement>("limit-select")
   private fileInput = $<HTMLInputElement>("file-input")
+  private superfuseButton = $<HTMLButtonElement>("superfuse-button")
 
   constructor(engine: Engine) {
     this.engine = engine
@@ -135,8 +139,10 @@ export class App {
     this.query.addEventListener("input", () => {
       this.autosize()
       prefs.set("query", this.query.value)
+      this.updateSuperfuse()
     })
     $("run-button").addEventListener("click", () => void this.run())
+    this.superfuseButton.addEventListener("click", () => this.superfuse())
     $("stop-button").addEventListener("click", () => this.engine.stop())
     this.formatSelect.addEventListener("change", () => {
       prefs.set("format", this.formatSelect.value)
@@ -150,6 +156,7 @@ export class App {
     for (const tab of document.querySelectorAll<HTMLButtonElement>(".tabs [data-view]")) {
       tab.addEventListener("click", () => {
         this.userView = tab.dataset.view as ViewName
+        this.resultView = undefined
         prefs.set("view", this.userView)
         this.showView()
       })
@@ -255,6 +262,7 @@ export class App {
   }
 
   private renderFiles() {
+    this.updateSuperfuse()
     const chips = $("file-chips")
     chips.replaceChildren(
       ...this.files.map((f) => {
@@ -300,8 +308,10 @@ export class App {
     return this.files.length > 0 || this.query.value.trim() !== ""
   }
 
-  async run() {
+  /** Runs the query.  view, if given, shows its results without changing the user's choice. */
+  async run(view?: ViewName) {
     const seq = ++this.runSeq
+    this.resultView = view
     $("empty").hidden = this.hasWork()
     if (!this.hasWork()) {
       this.outcome = undefined
@@ -343,8 +353,31 @@ export class App {
     }
   }
 
+  // superfuse adds "aggregate superfuse(this)" to the query and runs it, so
+  // the fused type of the results opens in the inspector.  The query box
+  // shows what ran, so the button also teaches the syntax.
+  private superfuse() {
+    if (!this.hasWork()) return
+    const text = addSuperfuse(this.query.value)
+    // Replace the text as typing would, so Undo brings back the old query.
+    // insertText fires an input event, which resizes and saves the query.
+    this.query.focus()
+    this.query.select()
+    if (!document.execCommand("insertText", false, text)) {
+      this.query.value = text
+      this.query.dispatchEvent(new Event("input"))
+    }
+    void this.run("inspector")
+  }
+
+  /** The Superfuse button needs files or a query to work on. */
+  private updateSuperfuse() {
+    this.superfuseButton.disabled = !this.hasWork()
+  }
+
   private setRunning(running: boolean) {
     $("run-button").hidden = running
+    this.superfuseButton.hidden = running
     $("stop-button").hidden = !running
     document.body.classList.toggle("running", running)
   }
@@ -453,7 +486,7 @@ export class App {
   }
 
   private showView() {
-    const view = this.userView ?? this.view
+    const view = this.resultView ?? this.userView ?? this.view
     this.view = view
     for (const tab of document.querySelectorAll<HTMLButtonElement>(".tabs [data-view]")) {
       const on = tab.dataset.view === view

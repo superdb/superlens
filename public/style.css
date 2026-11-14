@@ -103,6 +103,11 @@ button {
 button:hover {
   background: var(--bg-2);
 }
+button:disabled {
+  opacity: 0.5;
+  /* No hover or click effects. */
+  pointer-events: none;
+}
 button.primary {
   background: var(--accent);
   border-color: var(--accent);
