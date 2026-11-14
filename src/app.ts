@@ -1,7 +1,7 @@
 // SuperLens: open files, query them with SuperSQL, and look at the results.
 
 import type { Value } from "@superdb/super-ts"
-import { Cancelled, Engine, type QueryOutcome } from "./engine/engine.ts"
+import { Cancelled, Engine, EngineCrashed, EngineProblem, type QueryOutcome } from "./engine/engine.ts"
 import { sup, toJSON } from "./views/cells.ts"
 import { bestView, type ViewName } from "./views/choose.ts"
 import { InspectorView } from "./views/inspector.ts"
@@ -48,6 +48,31 @@ function formatBytes(n: number): string {
 function formatMs(ms: number): string {
   return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(2)} s`
 }
+
+// paragraph makes a paragraph of text, with any SuperSQL in it (in
+// `backticks`) as code.
+function paragraph(text: string): HTMLParagraphElement {
+  const p = document.createElement("p")
+  text.split("`").forEach((part, i) => {
+    if (i % 2 === 0) {
+      p.append(part)
+      return
+    }
+    const code = document.createElement("code")
+    code.textContent = part
+    p.append(code)
+  })
+  return p
+}
+
+// What a query ran with, for a bug report.
+interface Ran {
+  program: string
+  /** The name of the input format, as the Format menu shows it. */
+  format: string
+}
+
+const newIssueURL = "https://github.com/superdb/super/issues/new"
 
 function plural(n: number, word: string): string {
   return `${n.toLocaleString()} ${word}${n === 1 ? "" : "s"}`
@@ -288,9 +313,14 @@ export class App {
     if (this.engine.busy) this.engine.stop()
     this.setRunning(true)
     $("status").textContent = this.engine.version ? "Running…" : "Waiting for the query engine…"
+    // The query box and Format menu may change while the query runs, so
+    // keep what ran.
+    const program = this.query.value
+    const format = this.formatSelect.value
+    const ran = { program, format: this.formatSelect.selectedOptions[0]?.text ?? format }
     try {
-      const outcome = await this.engine.run(this.query.value, this.files, {
-        format: this.formatSelect.value,
+      const outcome = await this.engine.run(program, this.files, {
+        format,
         limit: Number(this.limitSelect.value),
       })
       if (seq !== this.runSeq) return
@@ -306,7 +336,7 @@ export class App {
         $("status").textContent = "Stopped"
       } else {
         $("status").textContent = this.outcome ? "Showing the previous results" : ""
-        this.showMessages([], e instanceof Error ? e.message : String(e))
+        this.showMessages([], e instanceof EngineProblem ? e : e instanceof Error ? e.message : String(e), ran)
       }
     } finally {
       if (seq === this.runSeq) this.setRunning(false)
@@ -319,10 +349,16 @@ export class App {
     document.body.classList.toggle("running", running)
   }
 
-  private showMessages(warnings: string[], error: string | undefined) {
+  // showMessages shows an error and warnings above the results.  Errors from
+  // the engine are in a fixed-width font, since they can point at a column of
+  // the query.  An engine crash or panic is described in the app's own words
+  // instead.  ran is what the query that got the error ran with.
+  private showMessages(warnings: string[], error: string | EngineProblem | undefined, ran?: Ran) {
     const box = $("messages")
     const items: HTMLElement[] = []
-    if (error) {
+    if (error instanceof EngineProblem) {
+      items.push(this.problemMessage(error, ran))
+    } else if (error) {
       const pre = document.createElement("pre")
       pre.className = "message error"
       pre.textContent = error
@@ -335,6 +371,65 @@ export class App {
       items.push(div)
     }
     box.replaceChildren(...items)
+  }
+
+  // problemMessage describes an engine crash or panic.  Except for running
+  // out of memory, these are bugs in SuperDB, so it asks for a report and
+  // shows what Go printed, collapsed to its first line.  The link to GitHub
+  // doesn't fill in the issue, which would send the query to GitHub as soon
+  // as it's clicked.  "Copy details" lets the user choose what to paste.
+  private problemMessage(e: EngineProblem, ran?: Ran): HTMLElement {
+    const div = document.createElement("div")
+    div.className = "message error prose"
+    div.append(paragraph(e.message))
+    if (e instanceof EngineCrashed && e.outOfMemory) return div
+
+    const link = document.createElement("a")
+    link.href = newIssueURL
+    link.target = "_blank"
+    link.rel = "noopener"
+    link.textContent = "new issue on GitHub"
+    const copy = document.createElement("button")
+    copy.id = "copy-details-button"
+    copy.type = "button"
+    copy.textContent = "Copy details"
+    copy.addEventListener("click", () => void this.copy(this.bugDetails(e.output, ran), copy.id))
+    const report = paragraph("Please report it in a ")
+    report.append(link, ", including your query, the SuperDB version, and the error below. ", copy)
+    div.append(report)
+
+    if (e.output) {
+      const details = document.createElement("details")
+      // Go may print diagnostics ("runtime: ...") before saying what failed.
+      const summary = document.createElement("summary")
+      summary.textContent = e.output.match(/^(panic|fatal error): .*$/m)?.[0] ?? e.output.split("\n", 1)[0]
+      const pre = document.createElement("pre")
+      pre.textContent = e.output
+      details.append(summary, pre)
+      div.append(details)
+    }
+    return div
+  }
+
+  // bugDetails is the text "Copy details" copies for a bug report, in
+  // Markdown so it reads well when pasted into a GitHub issue.
+  private bugDetails(output: string, ran?: Ran): string {
+    const fence = "```"
+    return [
+      `SuperDB ${this.engine.version} in SuperLens (input format: ${ran?.format ?? "unknown"})`,
+      "",
+      "Query:",
+      "",
+      fence,
+      ran?.program.trim() || "(none: showing everything in the files)",
+      fence,
+      "",
+      "Error:",
+      "",
+      fence,
+      output,
+      fence,
+    ].join("\n")
   }
 
   private showResults() {
