@@ -26,7 +26,7 @@ interface SuperLensWasm {
     inputFormat: string
     outputFormat: string
     limit: number
-  }): Promise<Uint8Array | string>
+  }): Promise<Uint8Array<ArrayBuffer> | string>
   version(): string
 }
 
@@ -286,6 +286,20 @@ self.onmessage = async (ev: MessageEvent<ToWorker>) => {
         })
         if (typeof out === "string") throw new Error("engine returned text instead of BSUP")
         post({ type: "result", id: req.id, bsup: out, elapsedMs: performance.now() - start }, [out.buffer])
+      } catch (e) {
+        failed(req.id, e)
+      }
+      return
+    case "export":
+      try {
+        const out = await api!.run({
+          program: req.program,
+          useLoaded: true,
+          inputFormat: req.format,
+          outputFormat: req.outputFormat,
+          limit: 0,
+        })
+        post({ type: "exported", id: req.id, output: out }, typeof out === "string" ? [] : [out.buffer])
       } catch (e) {
         failed(req.id, e)
       }

@@ -23,11 +23,6 @@ export class TextView {
     this.list.setCount(values.length)
   }
 
-  /** All of the values as SUP text, one per line. */
-  text(): string {
-    return this.values.map((v) => sup(v)).join("\n")
-  }
-
   private renderRow(i: number): HTMLElement {
     const el = document.createElement("div")
     el.className = "tline"

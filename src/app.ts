@@ -3,6 +3,7 @@
 import type { Value } from "@superdb/super-ts"
 import { Cancelled, Engine, EngineCrashed, EngineProblem, type QueryOutcome } from "./engine/engine.ts"
 import { sup, toJSON } from "./views/cells.ts"
+import { EXPORT_FORMATS, exportFormat, exportQuery } from "./export.ts"
 import { addSuperfuse } from "./superfuse.ts"
 import { bestView, type ViewName } from "./views/choose.ts"
 import { InspectorView } from "./views/inspector.ts"
@@ -79,15 +80,46 @@ function plural(n: number, word: string): string {
   return `${n.toLocaleString()} ${word}${n === 1 ? "" : "s"}`
 }
 
+// ClipboardFailed means the clipboard refused text, e.g., because the page
+// lost focus while the text was being made.
+class ClipboardFailed extends Error {}
+
+// writeClipboard copies text that's still being made.  Safari and Firefox
+// let a page write to the clipboard only while it handles a click, so where
+// it can, the clipboard gets a promise of the text right away.
+function writeClipboard(text: Promise<string>): Promise<void> {
+  if (typeof ClipboardItem !== "undefined") {
+    const blob = text.then((t) => new Blob([t], { type: "text/plain" }))
+    return navigator.clipboard.write([new ClipboardItem({ "text/plain": blob })])
+  }
+  return text.then((t) => navigator.clipboard.writeText(t))
+}
+
+// saveFile downloads data as a file named name.  The file is made in the
+// browser.
+function saveFile(name: string, data: string | Uint8Array<ArrayBuffer>, binary: boolean) {
+  const blob = new Blob([data], { type: binary ? "application/octet-stream" : "text/plain" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = name
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
 export class App {
   private engine: Engine
   private files: readonly File[] = []
   private outcome: QueryOutcome | undefined
+  // What made the results: Copy and Download run it again.
+  private shown: (Ran & { inputFormat: string; files: readonly File[]; limit: number }) | undefined
   private view: ViewName = "inspector"
   private userView: ViewName | undefined
   // A view for the current results only, e.g., the inspector for Superfuse.
   private resultView: ViewName | undefined
   private runSeq = 0
+  // Whether a query, Copy, or Download is running.
+  private running = false
   private table = new TableView()
   private inspector = new InspectorView()
   private text = new TextView()
@@ -99,6 +131,10 @@ export class App {
   private limitSelect = $<HTMLSelectElement>("limit-select")
   private fileInput = $<HTMLInputElement>("file-input")
   private superfuseButton = $<HTMLButtonElement>("superfuse-button")
+  private copyButton = $<HTMLButtonElement>("copy-button")
+  private downloadButton = $<HTMLButtonElement>("download-button")
+  private exportSelect = $<HTMLSelectElement>("export-select")
+  private exportControls = $("export-controls")
 
   constructor(engine: Engine) {
     this.engine = engine
@@ -106,6 +142,7 @@ export class App {
     this.wire()
     this.renderFiles()
     this.showView()
+    this.updateExport(false)
     document.body.classList.add("no-results")
     void this.startEngine()
   }
@@ -119,6 +156,8 @@ export class App {
     if (view === "table" || view === "inspector" || view === "text") this.userView = view
     // Expand all or Collapse all, whichever was used last, carries over.
     this.inspector.collapsed = prefs.get("expand") === "collapsed"
+    for (const f of EXPORT_FORMATS) this.exportSelect.add(new Option(f.label, f.name))
+    this.exportSelect.value = exportFormat(prefs.get("export")).name
     this.autosize()
   }
 
@@ -165,8 +204,12 @@ export class App {
     }
     $("expand-button").addEventListener("click", () => this.setExpand(true))
     $("collapse-button").addEventListener("click", () => this.setExpand(false))
-    $("copy-button").addEventListener("click", () => void this.copy(this.text.text(), "copy-button"))
-    $("download-button").addEventListener("click", () => this.download())
+    this.copyButton.addEventListener("click", () => this.exportResults(true))
+    this.downloadButton.addEventListener("click", () => this.exportResults(false))
+    this.exportSelect.addEventListener("change", () => {
+      prefs.set("export", this.exportSelect.value)
+      this.updateExport(this.running)
+    })
 
     this.table.onSelect = (v, i) => this.showDetail(v, i)
     $("detail-close").addEventListener("click", () => {
@@ -174,10 +217,10 @@ export class App {
       this.table.clearSelection()
     })
     $("detail-copy-sup").addEventListener("click", () => {
-      if (this.detailValue) void this.copy(sup(this.detailValue), "detail-copy-sup")
+      if (this.detailValue) void this.copy(sup(this.detailValue), $("detail-copy-sup"))
     })
     $("detail-copy-json").addEventListener("click", () => {
-      if (this.detailValue) void this.copy(toJSON(this.detailValue), "detail-copy-json")
+      if (this.detailValue) void this.copy(toJSON(this.detailValue), $("detail-copy-json"))
     })
     $("detail-body").append(this.detail.el)
 
@@ -317,6 +360,7 @@ export class App {
     $("empty").hidden = this.hasWork()
     if (!this.hasWork()) {
       this.outcome = undefined
+      this.shown = undefined
       this.showMessages([], undefined)
       $("status").textContent = ""
       this.showResults()
@@ -330,13 +374,13 @@ export class App {
     const program = this.query.value
     const format = this.formatSelect.value
     const ran = { program, format: this.formatSelect.selectedOptions[0]?.text ?? format }
+    const files = this.files
+    const limit = Number(this.limitSelect.value)
     try {
-      const outcome = await this.engine.run(program, this.files, {
-        format,
-        limit: Number(this.limitSelect.value),
-      })
+      const outcome = await this.engine.run(program, files, { format, limit })
       if (seq !== this.runSeq) return
       this.outcome = outcome
+      this.shown = { ...ran, inputFormat: format, files, limit }
       this.showMessages(outcome.warnings, undefined)
       this.showResults()
     } catch (e) {
@@ -382,6 +426,122 @@ export class App {
     this.superfuseButton.hidden = running
     $("stop-button").hidden = !running
     document.body.classList.toggle("running", running)
+    this.running = running
+    this.updateExport(running)
+  }
+
+  // updateExport enables Copy and Download, except while something runs,
+  // and says what they'll do.  A binary format can't be copied.
+  private updateExport(running: boolean) {
+    const f = exportFormat(this.exportSelect.value)
+    this.copyButton.disabled = running || f.binary
+    this.downloadButton.disabled = running
+    const fuse = f.tabular ? ", with “| fuse” added to the query so they share one set of columns" : ""
+    this.copyButton.title = f.binary ? "" : `Copy all of the results as ${f.label}${fuse}`
+    this.downloadButton.title = `Download all of the results as results.${f.ext}${fuse}`
+    // A disabled button gets no hover text, so this shows over it instead.
+    this.exportControls.title = f.binary ? `${f.label} is a binary format, so it can be downloaded but not copied` : ""
+  }
+
+  // exportResults copies or downloads the results in the format chosen next
+  // to the buttons.  Like zui, it runs the query that made them again, with
+  // no limit, so the output has all of the results, not just the ones shown,
+  // and comes straight from SuperDB (e.g., SUP with its type definitions).
+  // A tabular format gets "| fuse", and a note says so when the results
+  // have more than one shape.  Running a query stops it, as does Stop.
+  private exportResults(copy: boolean) {
+    const shown = this.shown
+    if (!shown || this.engine.busy) return
+    const f = exportFormat(this.exportSelect.value)
+    if (copy && f.binary) return
+    const { query, fused } = exportQuery(shown.program, f)
+    const name = `results.${f.ext}`
+    const shapes = this.outcome?.shapes.length ?? 0
+    // If Show cut off the results, the rest may have other shapes.
+    const cutOff = shown.limit > 0 && (this.outcome?.values.length ?? 0) >= shown.limit
+    const seq = ++this.runSeq
+    const status = $("status")
+    const before = { text: status.textContent, title: status.title }
+    status.textContent = copy ? `Copying the results as ${f.label}…` : `Preparing ${name}…`
+    status.title = ""
+    this.clearExportNotes()
+    this.setRunning(true)
+    const output = this.engine.export(query, shown.files, { format: shown.inputFormat, outputFormat: f.name })
+    const done = copy
+      ? writeClipboard(output.then((out) => (typeof out === "string" ? out : new TextDecoder().decode(out))))
+          // If the clipboard failed because the query did, say why the query
+          // did.  Otherwise, it's the clipboard's fault.
+          .catch(async (e) => {
+            await output
+            throw new ClipboardFailed(e instanceof Error ? e.message : String(e))
+          })
+      : output.then((out) => saveFile(name, out, f.binary))
+    done
+      .then(
+        () => {
+          if (seq !== this.runSeq) return
+          this.flash(copy ? this.copyButton : this.downloadButton, copy ? "Copied" : "Downloaded")
+          if (fused && (shapes > 1 || cutOff)) {
+            const which = cutOff ? "the shapes in all of the results" : `the ${plural(shapes, "shape")} in the results`
+            const div = document.createElement("div")
+            div.className = "message warning prose"
+            div.append(
+              paragraph(
+                `${f.label} needs one set of columns for every value, so \`fuse\` was added to the query to merge ${which}.`,
+              ),
+            )
+            this.addExportNote(div)
+          }
+        },
+        (e) => {
+          if (seq !== this.runSeq || e instanceof Cancelled) return
+          const what = copy ? `Couldn't copy the results as ${f.label}` : `Couldn't make \`${name}\``
+          this.addExportNote(this.exportError(e, what, fused, { ...shown, program: query }))
+        },
+      )
+      .finally(() => {
+        if (seq !== this.runSeq) return
+        status.textContent = before.text
+        status.title = before.title
+        this.setRunning(false)
+      })
+  }
+
+  // exportError describes why Copy or Download failed.  what says what
+  // failed, fused says whether fuse was added to the query, and ran is what
+  // the query ran with, for a bug report.
+  private exportError(e: unknown, what: string, fused: boolean, ran: Ran): HTMLElement {
+    if (e instanceof EngineProblem) {
+      const div = this.problemMessage(e, ran)
+      div.prepend(paragraph(`${what}.`))
+      if (e instanceof EngineCrashed && e.outOfMemory) {
+        div.append(paragraph("Copy and Download include all of the results, not just the ones shown, so they can need more memory than showing them."))
+      }
+      return div
+    }
+    const div = document.createElement("div")
+    div.className = "message error prose"
+    const pre = document.createElement("pre")
+    pre.textContent = e instanceof Error ? e.message : String(e)
+    if (e instanceof ClipboardFailed) {
+      div.append(paragraph(`${what}: the clipboard refused it.`), pre)
+    } else {
+      // SuperDB's error may suggest fuse, which was already added.
+      div.append(paragraph(fused ? `${what}, even with \`fuse\` added to the query:` : `${what}:`), pre)
+    }
+    return div
+  }
+
+  // Notes about Copy and Download go after the results' warnings and
+  // replace earlier ones.
+  private addExportNote(el: HTMLElement) {
+    this.clearExportNotes()
+    el.classList.add("export-note")
+    $("messages").append(el)
+  }
+
+  private clearExportNotes() {
+    for (const el of $("messages").querySelectorAll(".export-note")) el.remove()
   }
 
   // showMessages shows an error and warnings above the results.  Errors from
@@ -425,10 +585,10 @@ export class App {
     link.rel = "noopener"
     link.textContent = "new issue on GitHub"
     const copy = document.createElement("button")
-    copy.id = "copy-details-button"
+    copy.className = "copy-details"
     copy.type = "button"
     copy.textContent = "Copy details"
-    copy.addEventListener("click", () => void this.copy(this.bugDetails(e.output, ran), copy.id))
+    copy.addEventListener("click", () => void this.copy(this.bugDetails(e.output, ran), copy))
     const report = paragraph("Please report it in a ")
     report.append(link, ", including your query, the SuperDB version, and the error below. ", copy)
     div.append(report)
@@ -522,26 +682,23 @@ export class App {
     }
   }
 
-  private async copy(text: string, buttonID: string) {
-    const button = $(buttonID)
-    const label = button.textContent
+  private async copy(text: string, button: HTMLElement) {
     try {
-      await navigator.clipboard.writeText(text)
-      button.textContent = "Copied"
+      await writeClipboard(Promise.resolve(text))
+      this.flash(button, "Copied")
     } catch {
-      button.textContent = "Copy failed"
+      this.flash(button, "Copy failed")
     }
-    setTimeout(() => (button.textContent = label), 1200)
   }
 
-  // download saves the results as SUP.  The file is made in the browser.
-  private download() {
-    const blob = new Blob([this.text.text() + "\n"], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "results.sup"
-    a.click()
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  // flash shows text on a button for a moment.
+  private flash(button: HTMLElement, text: string) {
+    const label = button.dataset.label ?? button.textContent ?? ""
+    button.dataset.label = label
+    button.textContent = text
+    setTimeout(() => {
+      button.textContent = label
+      delete button.dataset.label
+    }, 1200)
   }
 }

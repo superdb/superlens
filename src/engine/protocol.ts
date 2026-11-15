@@ -24,7 +24,16 @@ export interface RunRequest {
   limit: number
 }
 
-export type ToWorker = LoadRequest | InputsRequest | RunRequest
+/** Runs a query with no limit and returns its output in outputFormat. */
+export interface ExportRequest {
+  type: "export"
+  id: number
+  program: string
+  format: string
+  outputFormat: string
+}
+
+export type ToWorker = LoadRequest | InputsRequest | RunRequest | ExportRequest
 
 export type FromWorker =
   | { type: "progress"; loaded: number; total: number }
@@ -32,6 +41,8 @@ export type FromWorker =
   | { type: "load-error"; message: string }
   | { type: "inputs-done"; id: number }
   | { type: "result"; id: number; bsup: Uint8Array; elapsedMs: number }
+  // Text formats come back as a string and binary ones as bytes.
+  | { type: "exported"; id: number; output: string | Uint8Array<ArrayBuffer> }
   | { type: "error"; id: number; message: string }
   // The Go program exited, so the worker can't run anything else.  output
   // is what Go printed about why (e.g., "fatal error: out of memory" or

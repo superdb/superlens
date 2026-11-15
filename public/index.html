@@ -54,15 +54,15 @@
           Format
           <select id="format-select" title="How to read the files (auto-detected by default)">
             <option value="auto">auto-detect</option>
-            <option value="json">JSON</option>
+            <option value="arrows">Arrow IPC stream</option>
+            <option value="bsup">BSUP</option>
             <option value="csv">CSV</option>
-            <option value="tsv">TSV</option>
+            <option value="json">JSON</option>
+            <option value="line">lines of text</option>
             <option value="parquet">Parquet</option>
             <option value="sup">SUP</option>
-            <option value="bsup">BSUP</option>
-            <option value="arrows">Arrow IPC stream</option>
+            <option value="tsv">TSV</option>
             <option value="zeek">Zeek</option>
-            <option value="line">lines of text</option>
           </select>
         </label>
       </div>
@@ -99,8 +99,15 @@
         <div class="actions">
           <button id="expand-button" class="link" type="button" data-for="inspector">Expand all</button>
           <button id="collapse-button" class="link" type="button" data-for="inspector">Collapse all</button>
-          <button id="copy-button" class="link" type="button" data-for="text">Copy</button>
-          <button id="download-button" class="link" type="button" data-for="text">Download</button>
+          <span id="export-controls" class="export">
+            <button id="copy-button" class="link" type="button">Copy</button>
+            <button id="download-button" class="link" type="button">Download</button>
+            <label class="field">
+              as
+              <!-- Filled in from EXPORT_FORMATS in src/export.ts. -->
+              <select id="export-select" title="The format for Copy and Download"></select>
+            </label>
+          </span>
           <label class="field">
             Show
             <select id="limit-select" title="Most values to show">

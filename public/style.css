@@ -274,13 +274,16 @@ select {
 }
 .results-bar {
   display: flex;
+  /* On a narrow window, the actions go on a second row. */
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 6px 12px;
   padding: 6px 16px;
   border-bottom: 1px solid var(--border);
 }
 .tabs {
   display: inline-flex;
+  flex-shrink: 0;
   border: 1px solid var(--border);
   border-radius: 6px;
   overflow: hidden;
@@ -322,8 +325,19 @@ body.running .status::before {
 }
 .actions {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
   gap: 4px;
+}
+.actions button {
+  white-space: nowrap;
+}
+.export {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 8px;
 }
 
 .messages:empty {
@@ -409,6 +423,7 @@ body.stale .view {
   opacity: 0.45;
 }
 body.no-results .actions [data-for],
+body.no-results .actions .export,
 body.no-results .tabs {
   visibility: hidden;
 }
