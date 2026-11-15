@@ -14,8 +14,8 @@ browser, compiled to WebAssembly.
 SuperLens has no server-side component. The site is a set of static files:
 HTML, JavaScript, CSS, and the query engine (`super.wasm`).
 
-* **Files are never uploaded.** When you open or drop a file, the browser
-  reads it into memory and hands it to the query engine in the same tab.
+* **Files are never uploaded.** When you open or drop a file, the query
+  engine in the same tab reads it from your computer as queries need it.
   Queries run locally, and the results are rendered locally.
 * **The page can't send your data anywhere.** Its content security policy
   (set in `index.html`, and also as an HTTP header by the dev server and
@@ -32,7 +32,10 @@ HTML, JavaScript, CSS, and the query engine (`super.wasm`).
 
 * **Open files** with the *Open files…* button, or drop them anywhere on the
   page. You can open several files; dropping a file with the same name
-  replaces it. Remove files with the × on their chips.
+  replaces it. Remove files with the × on their chips. Files are read as
+  each query needs them, so they can be larger than the 4 GB of memory the
+  engine has (a query's results still have to fit). If a file changes after
+  you open it, open it again.
 * **Formats** are detected automatically: JSON (including NDJSON), CSV, TSV,
   Parquet, SUP, BSUP, Arrow IPC streams, Zeek logs, and plain lines of text.
   If detection guesses wrong, choose the format from the *Format* menu (it
@@ -86,7 +89,7 @@ HTML, JavaScript, CSS, and the query engine (`super.wasm`).
  │  ┌──────────────────┐  files   ┌───────────────────────────────────┐  │
  │  │ files, query box │ ───────► │ super.wasm (wasm/main.go)          │  │
  │  │                  │  query   │  SuperDB compiler + runtime        │  │
- │  │ table, inspector │ ◄─────── │  reads the files from memory       │  │
+ │  │ table, inspector │ ◄─────── │  reads the files in pieces         │  │
  │  │ SUP views        │   BSUP   │  writes results as BSUP            │  │
  │  └──────────────────┘          └───────────────────────────────────┘  │
  │     ▲ decodes BSUP into typed values with super-ts                    │
@@ -97,9 +100,12 @@ HTML, JavaScript, CSS, and the query engine (`super.wasm`).
   checkout of the [super repo](https://github.com/superdb/super). It's
   adapted from the playground in super's book (`book/super-example`) with
   these changes:
-  * Inputs are a list of named files held in memory, so Parquet (which
-    needs random access) works and queries can refer to files by name.
-  * Files are loaded into the engine once and reused by later queries.
+  * Inputs are a list of named files that the engine reads in pieces as it
+    needs them, straight from the browser (with `FileReaderSync` in the
+    worker). So files don't have to fit in the engine's memory, Parquet
+    (which needs random access) works, and queries can refer to files by
+    name.
+  * Files are given to the engine once and reused by later queries.
   * Results are written as BSUP bytes, the same format and control messages
     the SuperDB service uses, instead of as text.
   * Fusion values are defused, as the `super` command does by default.
