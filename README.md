@@ -47,6 +47,12 @@ HTML, JavaScript, CSS, and the query engine (`super.wasm`).
   files it names. See the
   [SuperSQL reference](https://superdb.org/super-sql/intro) for the
   language.
+* **Superfuse** shows the shape of your data: one type that every value
+  fits, with `fusion(...)` marking where the values differ. The button adds
+  `aggregate superfuse(this)` to the end of the query (or uses it alone if
+  the query box is empty), runs it, and shows the result in the inspector.
+  The query box shows what ran, so you can edit it, e.g., to fuse just the
+  values from one file or of one kind.
 * **Views:**
   * **Table** shows a row per value and a column per field. Nested records
     are flattened into dotted column names. When values have different
