@@ -79,6 +79,8 @@ test("tree expands within a budget and toggles", () => {
   // A budget too small for the children leaves the value collapsed.
   m.expandWithin(2)
   assert.equal(m.rows().length, 1)
+  // A new tree starts collapsed, which is how results open after Collapse all.
+  assert.deepEqual(lines(new TreeModel([v]), false), ['{a:1,b:{c:"x"}}'])
 })
 
 test("tree pages large containers", () => {
