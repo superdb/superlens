@@ -18,6 +18,11 @@ export class InspectorView {
   private list: VirtualList
   private model = new TreeModel([])
   private rows: Row[] = []
+  /**
+   * Whether new values open collapsed.  expandAll and collapseAll set it, so
+   * the last one used carries over to the next values.
+   */
+  collapsed = false
 
   constructor() {
     this.list = new VirtualList({ rowHeight: ROW_HEIGHT, render: (i) => this.renderRow(i), className: "inspector" })
@@ -25,19 +30,22 @@ export class InspectorView {
     this.el.addEventListener("click", (ev) => this.onClick(ev))
   }
 
+  /** Shows values, expanded as far as budget rows allow unless collapsed is set. */
   setValues(values: readonly Value[], budget = AUTO_EXPAND_BUDGET) {
     this.model = new TreeModel(values)
-    this.model.expandWithin(budget)
+    if (!this.collapsed) this.model.expandWithin(budget)
     this.list.scrollToTop()
     this.update()
   }
 
   expandAll() {
+    this.collapsed = false
     this.model.expandWithin(100_000, 64)
     this.update()
   }
 
   collapseAll() {
+    this.collapsed = true
     this.model.collapseAll()
     this.update()
   }

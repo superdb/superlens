@@ -62,9 +62,10 @@ HTML, JavaScript, CSS, and the query engine (`super.wasm`).
     copy it as SUP or JSON.
   * **Inspector** shows values as an expandable tree. Small results open
     fully, larger ones partially. Use *Expand all* and *Collapse all*, or
-    click a row to toggle it. Type values, such as the results of
-    `typeof(this)` or `superfuse(this)`, open the same way, into the fields
-    of their types.
+    click a row to toggle it. After *Collapse all*, later results open
+    collapsed too, until you click *Expand all*. This browser remembers the
+    choice. Type values, such as the results of `typeof(this)` or
+    `superfuse(this)`, open the same way, into the fields of their types.
   * **SUP** shows each value as a line of SUP. You can copy all of the lines
     or download them as `results.sup`.
 

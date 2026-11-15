@@ -117,6 +117,8 @@ export class App {
     if (limit !== null && [...this.limitSelect.options].some((o) => o.value === limit)) this.limitSelect.value = limit
     const view = prefs.get("view")
     if (view === "table" || view === "inspector" || view === "text") this.userView = view
+    // Expand all or Collapse all, whichever was used last, carries over.
+    this.inspector.collapsed = prefs.get("expand") === "collapsed"
     this.autosize()
   }
 
@@ -161,8 +163,8 @@ export class App {
         this.showView()
       })
     }
-    $("expand-button").addEventListener("click", () => this.inspector.expandAll())
-    $("collapse-button").addEventListener("click", () => this.inspector.collapseAll())
+    $("expand-button").addEventListener("click", () => this.setExpand(true))
+    $("collapse-button").addEventListener("click", () => this.setExpand(false))
     $("copy-button").addEventListener("click", () => void this.copy(this.text.text(), "copy-button"))
     $("download-button").addEventListener("click", () => this.download())
 
@@ -483,6 +485,14 @@ export class App {
     this.inspector.setValues(values)
     this.text.setValues(values)
     this.showView()
+  }
+
+  // setExpand expands or collapses everything in the inspector, which keeps
+  // that choice for later results, and remembers it in this browser.
+  private setExpand(expand: boolean) {
+    prefs.set("expand", expand ? "expanded" : "collapsed")
+    if (expand) this.inspector.expandAll()
+    else this.inspector.collapseAll()
   }
 
   private showView() {
