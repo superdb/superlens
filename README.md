@@ -113,6 +113,9 @@ HTML, JavaScript, CSS, and the query engine (`super.wasm`).
     worker). So files don't have to fit in the engine's memory, Parquet
     (which needs random access) works, and queries can refer to files by
     name.
+  * JSON is read in batches of up to 1,024 values, not `super`'s 10,240, so
+    files of records the size of GitHub Archive events (about 20 KB each)
+    don't use up the engine's memory.
   * Files are given to the engine once and reused by later queries.
   * Results are written as BSUP bytes, the same format and control messages
     the SuperDB service uses, instead of as text.
