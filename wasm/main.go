@@ -10,12 +10,14 @@
 //	run({program, inputs, useLoaded, inputFormat, outputFormat, limit, fusion}) -> Promise
 //	version() -> string
 //
-// inputs is an array of {name, data} where data is a Uint8Array holding a
-// file's contents.  setInputs copies the inputs into Go so later queries
-// with useLoaded set can run over them without copying them again.  Each
-// input is registered under its name so a query can refer to it (e.g., from
-// 'data.json').  When the query doesn't begin with from, all of the inputs
-// are scanned.  For BSUP output, run
+// inputs is an array of {name, size, read} where read(offset, length)
+// synchronously returns a Uint8Array with the length bytes of the file at
+// offset (e.g., using FileReaderSync in a worker).  The engine
+// reads each file through read as queries need it, so files don't have to
+// fit in its memory.  setInputs keeps the inputs so later queries with
+// useLoaded set can run over them.  Each input is registered under its name so a query can refer
+// to it (e.g., from 'data.json').  When the query doesn't begin with from,
+// all of the inputs are scanned.  For BSUP output, run
 // resolves to a Uint8Array; for other formats, to a string.  If limit is
 // positive, output stops after (about) limit values and a QueryWarning
 // control message says so.
@@ -70,7 +72,8 @@ func main() {
 
 type input struct {
 	Name string   `wasm:"name"`
-	Data js.Value `wasm:"data"`
+	Size js.Value `wasm:"size"`
+	Read js.Value `wasm:"read"`
 }
 
 type opts struct {
@@ -141,16 +144,17 @@ func loadInputs(inputs []input, text js.Value) (*storage.InternalEngine, []strin
 	var paths []string
 	seen := map[string]bool{}
 	for _, in := range inputs {
-		if in.Data.Type() != js.TypeObject || !in.Data.InstanceOf(js.Global().Get("Uint8Array")) {
-			return nil, nil, fmt.Errorf("input %q: data must be a Uint8Array", in.Name)
+		if in.Read.Type() != js.TypeFunction || in.Size.Type() != js.TypeNumber {
+			return nil, nil, fmt.Errorf("input %q: needs a read function and a size", in.Name)
 		}
-		b := make([]byte, in.Data.Length())
-		js.CopyBytesToGo(b, in.Data)
+		size, read := int64(in.Size.Int()), in.Read
 		path, err := uniquePath(in.Name, seen)
 		if err != nil {
 			return nil, nil, err
 		}
-		eng.AddBytes(path, b)
+		eng.AddOpenFunc(path, func() (storage.Reader, error) {
+			return &fileReader{size: size, read: read}, nil
+		})
 		paths = append(paths, path)
 	}
 	if text.Type() == js.TypeString {
@@ -165,6 +169,95 @@ func loadInputs(inputs []input, text js.Value) (*storage.InternalEngine, []strin
 	}
 	return eng, paths, nil
 }
+
+// fileReader reads a file with a JavaScript read function (see the package
+// comment), so its contents never have to be held in Go's memory.  Parquet
+// and BSUP need ReadAt and Seek.  Formats that are read from start to end
+// can ask for a few KB at a time, so Read asks for more and keeps the rest,
+// since each call to read has a cost.
+type fileReader struct {
+	size  int64
+	read  js.Value
+	off   int64  // position of the next Read
+	ahead []byte // allocated on the first Read
+	buf   []byte // unread part of ahead, which starts at off
+}
+
+const readAhead = 1 << 20
+
+func (f *fileReader) ReadAt(b []byte, off int64) (n int, err error) {
+	if off < 0 {
+		return 0, errors.New("negative offset")
+	}
+	if off >= f.size {
+		return 0, io.EOF
+	}
+	want := len(b)
+	b = b[:min(int64(want), f.size-off)]
+	defer func() {
+		if r := recover(); r != nil {
+			n, err = 0, readError(r)
+		}
+	}()
+	n = js.CopyBytesToGo(b, f.read.Invoke(off, len(b)))
+	if n < len(b) {
+		return n, errors.New("the browser returned less of this file than it should have; if it has changed since it was opened, open it again")
+	}
+	if n < want {
+		return n, io.EOF
+	}
+	return n, nil
+}
+
+// readError is the error for an exception thrown by a read function.
+func readError(r any) error {
+	e, ok := r.(js.Error)
+	if !ok {
+		return fmt.Errorf("couldn't read this file: %v", r)
+	}
+	// The browser throws a NotReadableError when the file has changed
+	// since it was opened.
+	if e.Get("name").String() == "NotReadableError" {
+		return errors.New("the browser can no longer read this file; if it has changed since it was opened, open it again")
+	}
+	return fmt.Errorf("the browser couldn't read this file: %s", e.Get("message").String())
+}
+
+func (f *fileReader) Read(b []byte) (int, error) {
+	if len(f.buf) == 0 {
+		if f.ahead == nil {
+			f.ahead = make([]byte, min(readAhead, f.size))
+		}
+		n, err := f.ReadAt(f.ahead, f.off)
+		if n == 0 || (err != nil && err != io.EOF) {
+			return 0, err
+		}
+		f.buf = f.ahead[:n]
+	}
+	n := copy(b, f.buf)
+	f.buf = f.buf[n:]
+	f.off += int64(n)
+	return n, nil
+}
+
+func (f *fileReader) Seek(offset int64, whence int) (int64, error) {
+	switch whence {
+	case io.SeekStart:
+	case io.SeekCurrent:
+		offset += f.off
+	case io.SeekEnd:
+		offset += f.size
+	default:
+		return 0, errors.New("invalid whence")
+	}
+	if offset < 0 {
+		return 0, errors.New("negative position")
+	}
+	f.off, f.buf = offset, nil
+	return offset, nil
+}
+
+func (f *fileReader) Close() error { return nil }
 
 // uniquePath returns the path under which to register a file so that a
 // query naming the file (e.g., from 'data.json') finds it.  This is the

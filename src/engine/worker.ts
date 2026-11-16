@@ -1,8 +1,8 @@
 // The engine worker runs SuperDB (compiled to WebAssembly) off the main
-// thread so a long query doesn't freeze the page.  Files are read here, in
-// the browser, and copied into the engine's memory; nothing is sent over the
-// network.  The only fetches are for the engine itself (super.wasm and
-// wasm_exec.js), from the same site as the app.
+// thread so a long query doesn't freeze the page.  The engine reads files
+// here, in the browser, a piece at a time as queries need them; nothing is
+// sent over the network.  The only fetches are for the engine itself
+// (super.wasm and wasm_exec.js), from the same site as the app.
 
 import type { FromWorker, ToWorker } from "./protocol.ts"
 
@@ -15,8 +15,13 @@ interface GoRuntime {
 
 interface Input {
   name: string
-  data: Uint8Array
+  size: number
+  /** Returns the length bytes of the file at offset. */
+  read(offset: number, length: number): Uint8Array
 }
+
+// FileReaderSync is only in workers, and tsconfig uses the DOM library.
+declare const FileReaderSync: { new (): { readAsArrayBuffer(blob: Blob): ArrayBuffer } }
 
 interface SuperLensWasm {
   setInputs(inputs: Input[]): number
@@ -97,9 +102,10 @@ function crashed(err?: unknown) {
 // later call may fail in a confusing way (e.g., "fatal error: bad sweepgen
 // in refill"), so they're crashes.  (A runaway recursion can end in either
 // of these or in a fatal error from Go, from one run to the next.)  Errors
-// from queries come from Go as plain Errors.  Only errors from calls into Go
-// should be checked, since the worker's own code can throw a RangeError
-// (e.g., when it can't allocate memory for a file).
+// from queries come from Go as plain Errors, including errors from the read
+// functions that the engine calls to read files.  Only errors from calls into
+// Go should be checked, since the worker's own code can throw a RangeError
+// (e.g., when it can't allocate memory).
 function isBroken(e: unknown): boolean {
   return (
     e instanceof WebAssembly.RuntimeError ||
@@ -255,16 +261,24 @@ self.onmessage = async (ev: MessageEvent<ToWorker>) => {
       }
       return
     case "inputs": {
-      // Reading the files can fail (e.g., a RangeError when one is too big
-      // for the browser), but that doesn't mean the engine crashed.
-      let inputs: Input[]
-      try {
-        inputs = await Promise.all(
-          req.files.map(async (f) => ({ name: f.name, data: new Uint8Array(await f.arrayBuffer()) })),
-        )
-      } catch (e) {
-        post({ type: "error", id: req.id, message: errorMessage(e) })
-        return
+      // The engine reads each file in pieces, synchronously, so a file
+      // doesn't have to fit in its memory (or in an ArrayBuffer).
+      const reader = new FileReaderSync()
+      const inputs: Input[] = req.files.map((f) => ({
+        name: f.name,
+        size: f.size,
+        read: (offset, length) => new Uint8Array(reader.readAsArrayBuffer(f.slice(offset, offset + length))),
+      }))
+      // Reading a byte of each file now reports one that can't be read
+      // (e.g., a folder) when it's opened, not at the next query.  That
+      // doesn't mean the engine crashed.
+      for (const f of req.files) {
+        try {
+          reader.readAsArrayBuffer(f.slice(0, 1))
+        } catch (e) {
+          post({ type: "error", id: req.id, message: `${f.name}: ${errorMessage(e)}` })
+          return
+        }
       }
       try {
         api!.setInputs(inputs)
