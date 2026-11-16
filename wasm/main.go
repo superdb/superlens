@@ -283,6 +283,14 @@ func uniquePath(name string, seen map[string]bool) (string, error) {
 	}
 }
 
+// jsonBatchValues is the most values the JSON reader puts in a batch.  With
+// super's default of 10,240, a batch of large records (GitHub Archive events
+// average 20 KB) takes more than 1 GB of the engine's 4 GB.  When a query
+// asks for format auto, super also uses it as the most values in a batch
+// from its row-based readers (e.g., CSV), whose batches are also limited to
+// 512 KB.
+const jsonBatchValues = 1024
+
 // runQuery runs the query and returns its output.  compileErr is true if
 // the query failed to parse or compile.
 func runQuery(o opts, eng storage.Engine, paths []string, scan bool) ([]byte, bool, error) {
@@ -300,6 +308,7 @@ func runQuery(o opts, eng storage.Engine, paths []string, scan bool) ([]byte, bo
 	if f := o.InputFormat; f != "" && f != "auto" {
 		env.ReaderOpts.Format = f
 	}
+	env.ReaderOpts.InputCap = jsonBatchValues
 	ctx := context.Background()
 	sctx := super.NewContext()
 	query, err := runtime.CompileQuery(ctx, sctx, compiler.NewCompilerWithEnv(env), parsed)
