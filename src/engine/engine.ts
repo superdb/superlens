@@ -96,6 +96,12 @@ export class Engine {
   private opts: EngineOptions
   private worker: Worker | undefined
   private ready: Promise<void> | undefined
+  // cancelStart fails a start that's still loading, e.g., when Stop replaces
+  // the worker before it's ready.
+  private cancelStart: ((err: Error) => void) | undefined
+  // The number of runs and exports in progress, including ones waiting for
+  // the engine to start or for files to load.
+  private active = 0
   private module: WebAssembly.Module | undefined
   private pending = new Map<number, Pending>()
   private nextID = 1
@@ -113,6 +119,7 @@ export class Engine {
     this.loadedFiles = undefined
     let started = false
     this.ready = new Promise<void>((resolve, reject) => {
+      this.cancelStart = reject
       worker.onmessage = (ev: MessageEvent<FromWorker>) => {
         const msg = ev.data
         switch (msg.type) {
@@ -184,21 +191,42 @@ export class Engine {
     if (!this.worker) return
     this.worker.terminate()
     this.worker = undefined
+    this.cancelStart?.(err)
+    this.cancelStart = undefined
     this.ready = undefined
     this.failPending(err)
   }
 
   get busy(): boolean {
-    return this.pending.size > 0
+    return this.active > 0
   }
 
-  /** Runs a query over files and decodes the results. */
-  async run(program: string, files: readonly File[], opts: { format: string; limit: number }): Promise<QueryOutcome> {
+  // track counts an operation as active until it's done.
+  private async track<T>(op: () => Promise<T>): Promise<T> {
+    this.active++
+    try {
+      return await op()
+    } finally {
+      this.active--
+    }
+  }
+
+  // load gives the engine the files to query, unless it already has them.
+  private async load(files: readonly File[]) {
     await this.start()
     if (this.loadedFiles !== files) {
       await this.request({ type: "inputs", id: this.nextID++, files: [...files] })
       this.loadedFiles = files
     }
+  }
+
+  /** Runs a query over files and decodes the results. */
+  run(program: string, files: readonly File[], opts: { format: string; limit: number }): Promise<QueryOutcome> {
+    return this.track(() => this.runQuery(program, files, opts))
+  }
+
+  private async runQuery(program: string, files: readonly File[], opts: { format: string; limit: number }): Promise<QueryOutcome> {
+    await this.load(files)
     const msg = await this.request({
       type: "run",
       id: this.nextID++,
@@ -222,5 +250,29 @@ export class Engine {
       decodeMs: performance.now() - start,
       bytes: bsup.length,
     }
+  }
+
+  /**
+   * Runs a query over files with no limit and returns all of its output in
+   * outputFormat (e.g., "csv"): a string for a text format, or bytes for a
+   * binary one.
+   */
+  export(
+    program: string,
+    files: readonly File[],
+    opts: { format: string; outputFormat: string },
+  ): Promise<string | Uint8Array<ArrayBuffer>> {
+    return this.track(async () => {
+      await this.load(files)
+      const msg = await this.request({
+        type: "export",
+        id: this.nextID++,
+        program,
+        format: opts.format,
+        outputFormat: opts.outputFormat,
+      })
+      if (msg.type !== "exported") throw new Error(`unexpected engine message ${msg.type}`)
+      return msg.output
+    })
   }
 }

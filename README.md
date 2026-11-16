@@ -66,14 +66,22 @@ HTML, JavaScript, CSS, and the query engine (`super.wasm`).
     collapsed too, until you click *Expand all*. This browser remembers the
     choice. Type values, such as the results of `typeof(this)` or
     `superfuse(this)`, open the same way, into the fields of their types.
-  * **SUP** shows each value as a line of SUP. You can copy all of the lines
-    or download them as `results.sup`.
+  * **SUP** shows each value as a line of SUP.
 
   SuperLens picks the table for a set of records and the inspector for
   anything else. Once you pick a view, it sticks.
 * **Show** limits how many values are displayed (100,000 by default). When a
   result is cut off, a warning says so. Choose *all* to remove the limit;
   very large results use a lot of memory.
+* **Copy** and **Download** save the results in the format chosen next to
+  them (SUP by default), from any view. They run the query again, so they
+  include all of the results, not just the ones *Show* allows, and the
+  output comes straight from SuperDB. CSV, TSV, Parquet, and Arrow need one
+  set of columns for every value, so `| fuse` is added to the query for
+  them, and a note says so when the results have more than one shape.
+  Binary formats (Parquet, BSUP, and Arrow) can be downloaded but not
+  copied. Since they include everything, they can need more memory than
+  showing the results does.
 * **Stop** cancels a running query. It restarts the engine, which takes a
   moment.
 
