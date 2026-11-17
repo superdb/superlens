@@ -7,7 +7,7 @@
 // It exposes these functions to JavaScript through golang-wasm:
 //
 //	setInputs(inputs)
-//	run({program, inputs, useLoaded, inputFormat, outputFormat, limit, fusion}) -> Promise
+//	run({program, inputs, useLoaded, inputFormat, outputFormat, limit, fusion, rows}) -> Promise
 //	version() -> string
 //
 // inputs is an array of {name, size, read} where read(offset, length)
@@ -20,7 +20,8 @@
 // all of the inputs are scanned.  For BSUP output, run
 // resolves to a Uint8Array; for other formats, to a string.  If limit is
 // positive, output stops after (about) limit values and a QueryWarning
-// control message says so.
+// control message says so.  If rows is set, BSUP output is written as rows
+// instead of columns (see newRowWriter).
 //
 // For compatibility with super's book playground, a string input field is
 // also accepted.
@@ -39,6 +40,7 @@ import (
 	"github.com/superdb/super"
 	"github.com/superdb/super/api"
 	"github.com/superdb/super/api/queryio"
+	"github.com/superdb/super/bsup"
 	"github.com/superdb/super/compiler"
 	"github.com/superdb/super/compiler/ast"
 	"github.com/superdb/super/compiler/parser"
@@ -85,8 +87,12 @@ type opts struct {
 	OutputFormat string   `wasm:"outputFormat"`
 	Limit        int      `wasm:"limit"`
 	// Fusion keeps fusion values in the output.  By default they are
-	// defused, as the super command does.
+	// defused, as the super command does, except in BSUP columns, which
+	// hold fusion values as written.
 	Fusion bool `wasm:"fusion"`
+	// Rows writes BSUP output as rows instead of columns, with fusion
+	// values defused unless Fusion is set.
+	Rows bool `wasm:"rows"`
 }
 
 func run(o opts) wasm.Promise {
@@ -317,12 +323,16 @@ func runQuery(o opts, eng storage.Engine, paths []string, scan bool) ([]byte, bo
 	}
 	defer query.Pull(true)
 	var buf bytes.Buffer
-	w, err := newWriter(&buf, sctx, o.OutputFormat)
+	w, err := newWriter(&buf, sctx, o.OutputFormat, o.Rows)
 	if err != nil {
 		return nil, false, err
 	}
+	// As super -f bsup does, BSUP columns keep fusion values, which hold
+	// values of many shapes in one set of columns.  Defused, those values
+	// would need a set of columns for each shape, which can take more
+	// memory than the engine has.
 	var defuse *expr.SuperDefuse
-	if !o.Fusion {
+	if !o.Fusion && (o.OutputFormat != "bsup" || o.Rows) {
 		defuse = expr.NewSuperDefuse(sctx)
 	}
 	var n int
@@ -390,11 +400,67 @@ type controlWriter interface {
 	WriteControl(any) error
 }
 
-// newWriter returns a writer for the output format.  BSUP output uses the
-// service's query writer so it can carry control messages (e.g., warnings).
-func newWriter(w io.Writer, sctx *super.Context, format string) (writer, error) {
+// newWriter returns a writer for the output format.  BSUP output can carry
+// control messages (e.g., warnings).  As columns, it uses the service's query
+// writer.
+func newWriter(w io.Writer, sctx *super.Context, format string, rows bool) (writer, error) {
 	if format == "bsup" {
+		if rows {
+			return newRowWriter(w), nil
+		}
 		return queryio.NewBSUPWriter(w), nil
 	}
 	return anyio.NewWriter(sctx, sio.NopCloser(w), anyio.WriterOpts{Format: format})
+}
+
+// rowFrameValues is about the most values in a frame of BSUP rows.  The
+// writer builds each frame in a buffer of its own before adding it to the
+// output, and it ends a frame only after a whole vector, so a frame here is
+// usually one batch from the reader.  With super's default of 20,000 values,
+// a frame of GitHub Archive events is hundreds of MB, and the extra copy
+// took 600 MB more of the engine's memory for ghasample.json.
+const rowFrameValues = 1000
+
+// rowWriter writes BSUP rows, which the page shows its results from.  The
+// results are defused, so values of different shapes have different types.
+// The column writer encodes a separate set of columns for each type, so for
+// data with a different shape in nearly every value (e.g., GitHub Archive
+// events), it needs a column for nearly every field of every value, which
+// can take more memory than the engine has.  Rows hold each value whole.
+//
+// A bsup.RowWriter can't write control frames, so WriteControl ends the
+// row writer's super frame and writes the message in a super frame of its
+// own, with the service's query writer.
+type rowWriter struct {
+	w      io.Writer
+	rows   vio.PushCloser
+	closed bool
+}
+
+func newRowWriter(w io.Writer) *rowWriter {
+	opts := bsup.WriterOpts{Rows: true, FrameCap: rowFrameValues}
+	return &rowWriter{w: w, rows: bsup.NewWriterWithOpts(sio.NopCloser(w), opts)}
+}
+
+func (r *rowWriter) Push(vec vector.Any) error {
+	return r.rows.Push(vec)
+}
+
+func (r *rowWriter) WriteControl(v any) error {
+	if err := r.Close(); err != nil {
+		return err
+	}
+	cw := queryio.NewBSUPWriter(r.w)
+	if err := cw.WriteControl(v); err != nil {
+		return err
+	}
+	return cw.Close()
+}
+
+func (r *rowWriter) Close() error {
+	if r.closed {
+		return nil
+	}
+	r.closed = true
+	return r.rows.Close()
 }

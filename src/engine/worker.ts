@@ -31,6 +31,7 @@ interface SuperLensWasm {
     inputFormat: string
     outputFormat: string
     limit: number
+    rows?: boolean
   }): Promise<Uint8Array<ArrayBuffer> | string>
   version(): string
 }
@@ -297,6 +298,11 @@ self.onmessage = async (ev: MessageEvent<ToWorker>) => {
           inputFormat: req.format,
           outputFormat: "bsup",
           limit: req.limit,
+          // Rows take far less of the engine's memory than columns when the
+          // results have many shapes (see newRowWriter in wasm/main.go).
+          // Downloads in BSUP are still columns, of fusion values, as
+          // super -f bsup writes them.
+          rows: true,
         })
         if (typeof out === "string") throw new Error("engine returned text instead of BSUP")
         post({ type: "result", id: req.id, bsup: out, elapsedMs: performance.now() - start }, [out.buffer])

@@ -117,9 +117,14 @@ HTML, JavaScript, CSS, and the query engine (`super.wasm`).
     files of records the size of GitHub Archive events (about 20 KB each)
     don't use up the engine's memory.
   * Files are given to the engine once and reused by later queries.
-  * Results are written as BSUP bytes, the same format and control messages
-    the SuperDB service uses, instead of as text.
+  * Results are written as BSUP rows, instead of as text, with the
+    SuperDB service's control messages (e.g., a warning that the limit was
+    reached, in a super frame of its own after the results). The service
+    writes BSUP columns, but rows take far less of the engine's memory when
+    results have many shapes (e.g., GitHub Archive events, where nearly
+    every value has its own).
   * Fusion values are defused, as the `super` command does by default.
+    Downloads in BSUP keep them, as `super -f bsup` does.
   * There's a result limit that sends a warning when it's reached.
 * **The worker** loads the engine and runs queries off the main thread, so
   the page stays responsive. Stopping a query replaces the worker, reusing
@@ -242,8 +247,8 @@ test/                     unit tests (node --test)
   If super's internal APIs have changed, `wasm/main.go` may need updating.
   It uses `parser.ParseText`, `storage.NewInternalEngine`,
   `exec.NewEnvironment`, `compiler.NewCompilerWithEnv`,
-  `runtime.CompileQuery`, `queryio.NewBSUPWriter`, and
-  `expr.NewSuperDefuse`.
+  `runtime.CompileQuery`, `queryio.NewBSUPWriter`,
+  `bsup.NewWriterWithOpts`, and `expr.NewSuperDefuse`.
 * **A file is read in the wrong format.** Pick the format from the *Format*
   menu.
 * **The page gets slow with huge results.** Lower *Show*, or aggregate in the
