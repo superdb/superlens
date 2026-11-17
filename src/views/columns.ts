@@ -1,9 +1,14 @@
-// Table columns for a set of values of possibly many shapes.  Records
-// contribute a column per leaf field (nested records are flattened into
-// dotted paths); the columns of all shapes are merged by path, in the order
-// they first appear.  Any other value is shown in a column named "this".
+// Table columns for values of possibly many shapes.  Records contribute a
+// column per leaf field (nested records are flattened into dotted paths),
+// and the columns of all shapes are merged by path, in the order they first
+// appear.  Any other value is shown in a column named "this".
+//
+// The columns come from types, not values, so a big result's columns come
+// from the fused types of its frames, without decoding its values: a fused
+// type has every field of every value, with fusion, option, and union types
+// where values differ, and these are looked through to find the records.
 
-import { leafColumnsOf, recordOf, type Type, type Value } from "@superdb/super-ts"
+import { under, type Type, type Value } from "@superdb/super-ts"
 
 export interface TableColumn {
   /** A unique key for the column's path. */
@@ -14,55 +19,62 @@ export interface TableColumn {
 
 const THIS = "\u0000this"
 
-export function buildColumns(shapes: readonly Type[]): TableColumn[] {
+// Types nested more deeply than this (e.g., a recursive named type) don't
+// get columns of their own.
+const MAX_DEPTH = 32
+
+/** The columns for values of the given types. */
+export function buildColumns(types: readonly Type[]): TableColumn[] {
   const cols: TableColumn[] = []
   const seen = new Set<string>()
-  const add = (id: string, path: string[], label: string) => {
+  const add = (path: string[]) => {
+    const id = path.length === 0 ? THIS : path.join("\u0000")
     if (seen.has(id)) return
     seen.add(id)
-    cols.push({ id, path, label })
+    cols.push({ id, path, label: path.length === 0 ? "this" : path.join(".") })
   }
-  for (const shape of shapes) {
-    if (!recordOf(shape)) {
-      add(THIS, [], "this")
-      continue
+  const walk = (t: Type, path: string[], depth: number) => {
+    let u = under(t)
+    while ((u.kind === "fusion" || u.kind === "option") && depth < MAX_DEPTH) {
+      u = under(u.type)
+      depth++
     }
-    for (const c of leafColumnsOf(shape)) add(c.path.join("\u0000"), c.path, c.path.join("."))
+    if (u.kind === "union" && depth < MAX_DEPTH) {
+      for (const m of u.types) walk(m, path, depth + 1)
+      return
+    }
+    // A missing or none member of a union isn't a value to show.
+    if (u.kind === "primitive" && (u.name === "missing" || u.name === "none") && path.length > 0) return
+    if (u.kind === "record" && u.fields.length > 0 && depth < MAX_DEPTH) {
+      for (const f of u.fields) walk(f.type, [...path, f.name], depth + 1)
+      return
+    }
+    add(path)
   }
+  for (const t of types) walk(t, [], 0)
   return cols
 }
 
-/** Finds the value of each column in a row, caching the lookup per shape. */
+/** Finds the value of each column in a row by following the column's path. */
 export class CellLookup {
   private columns: readonly TableColumn[]
-  private byShape = new Map<Type, (readonly number[] | null)[]>()
 
   constructor(columns: readonly TableColumn[]) {
     this.columns = columns
   }
 
-  private indexPaths(shape: Type): (readonly number[] | null)[] {
-    let paths = this.byShape.get(shape)
-    if (paths) return paths
-    const rec = recordOf(shape)
-    const ids = new Map<string, readonly number[]>()
-    if (rec) {
-      for (const c of leafColumnsOf(shape)) ids.set(c.path.join("\u0000"), c.indexPath)
-    } else {
-      ids.set(THIS, [])
-    }
-    paths = this.columns.map((c) => ids.get(c.id) ?? null)
-    this.byShape.set(shape, paths)
-    return paths
-  }
-
-  /** The value of column k in row v, or undefined if v's shape lacks the column. */
+  /** The value of column k in row v, or undefined if v doesn't have the column. */
   cell(v: Value, k: number): Value | undefined {
-    const path = this.indexPaths(v.type)[k]
-    if (!path) return undefined
-    if (path.length === 0) return v
-    const rec = v.unwrap()
-    return rec.kind === "record" ? rec.fieldAt(path) : undefined
+    const path = this.columns[k].path
+    if (path.length === 0) return v.unwrap().kind === "record" ? undefined : v
+    let cur: Value | undefined = v
+    for (const name of path) {
+      const rec: Value = cur.unwrap()
+      if (rec.kind !== "record") return undefined
+      cur = rec.get(name)
+      if (cur === undefined) return undefined
+    }
+    return cur
   }
 }
 

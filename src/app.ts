@@ -6,6 +6,7 @@ import { sup, toJSON } from "./views/cells.ts"
 import { EXPORT_FORMATS, exportFormat, exportQuery } from "./export.ts"
 import { addSuperfuse } from "./superfuse.ts"
 import { bestView, type ViewName } from "./views/choose.ts"
+import { arraySource, type ValueSource } from "./views/tree.ts"
 import { InspectorView } from "./views/inspector.ts"
 import { TableView } from "./views/table.ts"
 import { TextView } from "./views/text.ts"
@@ -75,6 +76,9 @@ interface Ran {
 }
 
 const newIssueURL = "https://github.com/superdb/super/issues/new"
+
+// The number of values sampled to choose the view.
+const SAMPLE = 200
 
 function plural(n: number, word: string): string {
   return `${n.toLocaleString()} ${word}${n === 1 ? "" : "s"}`
@@ -381,7 +385,7 @@ export class App {
       if (seq !== this.runSeq) return
       this.outcome = outcome
       this.shown = { ...ran, inputFormat: format, files, limit }
-      this.showMessages(outcome.warnings, undefined)
+      this.showMessages([...outcome.results.warnings], undefined)
       this.showResults()
     } catch (e) {
       if (seq !== this.runSeq) return
@@ -456,9 +460,11 @@ export class App {
     if (copy && f.binary) return
     const { query, fused } = exportQuery(shown.program, f)
     const name = `results.${f.ext}`
-    const shapes = this.outcome?.shapes.length ?? 0
+    // Whether the results have more than one shape, judged by their fused
+    // types, which doesn't need their values decoded.
+    const mixed = this.outcome?.results.mixed ?? false
     // If Show cut off the results, the rest may have other shapes.
-    const cutOff = shown.limit > 0 && (this.outcome?.values.length ?? 0) >= shown.limit
+    const cutOff = shown.limit > 0 && (this.outcome?.results.length ?? 0) >= shown.limit
     const seq = ++this.runSeq
     const status = $("status")
     const before = { text: status.textContent, title: status.title }
@@ -481,8 +487,8 @@ export class App {
         () => {
           if (seq !== this.runSeq) return
           this.flash(copy ? this.copyButton : this.downloadButton, copy ? "Copied" : "Downloaded")
-          if (fused && (shapes > 1 || cutOff)) {
-            const which = cutOff ? "the shapes in all of the results" : `the ${plural(shapes, "shape")} in the results`
+          if (fused && (mixed || cutOff)) {
+            const which = cutOff ? "the shapes in all of the results" : "the different shapes in the results"
             const div = document.createElement("div")
             div.className = "message warning prose"
             div.append(
@@ -628,22 +634,29 @@ export class App {
   }
 
   private showResults() {
-    const values = this.outcome?.values ?? []
+    const results = this.outcome?.results
+    const source: ValueSource = results ?? arraySource([])
     document.body.classList.remove("stale")
     document.body.classList.toggle("no-results", this.outcome === undefined)
     this.showDetail(undefined, -1)
-    if (this.outcome) {
+    // A sample of the first values picks the view, since there may be too
+    // many to look at all of them.
+    const sample = results?.head(SAMPLE) ?? []
+    const shapes = new Set(sample.map((v) => v.type)).size
+    if (this.outcome && results) {
       const o = this.outcome
-      const parts = [plural(values.length, "value")]
-      if (o.shapes.length > 1) parts.push(plural(o.shapes.length, "shape"))
+      const parts = [plural(results.length, "value")]
+      // The number of shapes is known only when the sample is all of the
+      // values.  (Counting them would mean decoding them all.)
+      if (results.length <= SAMPLE && shapes > 1) parts.push(plural(shapes, "shape"))
       parts.push(`${formatMs(o.elapsedMs + o.decodeMs)}`)
       $("status").textContent = parts.join(" · ")
-      $("status").title = `query ${formatMs(o.elapsedMs)}, decode ${formatMs(o.decodeMs)}, ${formatBytes(o.bytes)} of BSUP`
+      $("status").title = `query ${formatMs(o.elapsedMs)}, reading results ${formatMs(o.decodeMs)}, ${formatBytes(results.bytes)} of BSUP`
     }
-    this.view = this.userView ?? bestView(values, this.outcome?.shapes.length ?? 0)
-    this.table.setValues(values)
-    this.inspector.setValues(values)
-    this.text.setValues(values)
+    this.view = this.userView ?? bestView(sample, shapes)
+    this.table.setValues(source, results?.fusedTypes ?? [])
+    this.inspector.setValues(source)
+    this.text.setValues(source)
     this.showView()
   }
 
@@ -678,7 +691,7 @@ export class App {
     aside.hidden = v === undefined
     if (v) {
       $("detail-title").textContent = `Row ${(index + 1).toLocaleString()}`
-      this.detail.setValues([v], 5000)
+      this.detail.setValues(arraySource([v]), 5000)
     }
   }
 

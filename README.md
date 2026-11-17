@@ -60,12 +60,14 @@ HTML, JavaScript, CSS, and the query engine (`super.wasm`).
   * **Table** shows a row per value and a column per field. Nested records
     are flattened into dotted column names. When values have different
     shapes, their columns are merged, and a hatched cell marks a field that
-    a row doesn't have. Drag a column's right edge to resize it. Click a row
+    a row doesn't have. The columns come from the results' fused type, so
+    every field of every value has one, even when there are thousands. Drag a column's right edge to resize it. Click a row
     (or use the arrow keys) to inspect it in the side panel, where you can
     copy it as SUP or JSON.
   * **Inspector** shows values as an expandable tree. Small results open
-    fully, larger ones partially. Use *Expand all* and *Collapse all*, or
-    click a row to toggle it. After *Collapse all*, later results open
+    fully, larger ones partially, and big ones collapsed. Use *Expand all*
+    and *Collapse all*, or click a row to toggle it. After *Expand all*,
+    each value expands as it scrolls into view. After *Collapse all*, later results open
     collapsed too, until you click *Expand all*. This browser remembers the
     choice. Type values, such as the results of `typeof(this)` or
     `superfuse(this)`, open the same way, into the fields of their types.
@@ -74,8 +76,9 @@ HTML, JavaScript, CSS, and the query engine (`super.wasm`).
   SuperLens picks the table for a set of records and the inspector for
   anything else. Once you pick a view, it sticks.
 * **Show** limits how many values are displayed (100,000 by default). When a
-  result is cut off, a warning says so. Choose *all* to remove the limit;
-  very large results use a lot of memory.
+  result is cut off, a warning says so. Choose *all* to remove the limit.
+  Values are decoded only as they're shown, so a big result mostly costs the
+  memory of its BSUP.
 * **Copy** and **Download** save the results in the format chosen next to
   them (SUP by default), from any view. They run the query again, so they
   include all of the results, not just the ones *Show* allows, and the
@@ -100,7 +103,7 @@ HTML, JavaScript, CSS, and the query engine (`super.wasm`).
  │  │ table, inspector │ ◄─────── │  reads the files in pieces         │  │
  │  │ SUP views        │   BSUP   │  writes results as BSUP            │  │
  │  └──────────────────┘          └───────────────────────────────────┘  │
- │     ▲ decodes BSUP into typed values with super-ts                    │
+ │     ▲ decodes and defuses just the values on screen, with super-ts    │
  └───────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -119,20 +122,41 @@ HTML, JavaScript, CSS, and the query engine (`super.wasm`).
   * Files are given to the engine once and reused by later queries.
   * Results are written as BSUP bytes, the same format and control messages
     the SuperDB service uses, instead of as text.
-  * Fusion values are defused, as the `super` command does by default.
+  * Fused values stay fused. When super reads data whose values have many
+    different shapes, such as JSON, it fuses them into one supertype. Every
+    place where the values differ becomes a fusion value, which holds the
+    value as the supertype plus its original type. Defusing them in the
+    engine (as `super` does on output) and writing the result means encoding
+    a vector for every distinct type. With tens of thousands of types, that
+    runs out of the engine's 4 GB. Left fused, the result is a few column
+    frames of one supertype. (Copy and Download still defuse, since their
+    output is meant to match `super`'s.)
   * There's a result limit that sends a warning when it's reached.
 * **The worker** loads the engine and runs queries off the main thread, so
   the page stays responsive. Stopping a query replaces the worker, reusing
   the already-compiled engine.
-* **[super-ts](https://github.com/superdb/super-ts)** decodes the BSUP
-  results into typed values (`QueryResult`, `decodeBSUPStream`) and formats
-  them as SUP. The views use its types and values directly: shapes for table
-  columns, `RecordValue.fieldAt` for cells, the `Type` inside a type value for
+* **The results** (`src/results.ts`) keep the BSUP and decode values only
+  when a view asks for them. They use these parts of
+  [super-ts](https://github.com/superdb/super-ts):
+  * `BSUPResults` reads the frames' headers and locators up front, which
+    takes milliseconds, and decodes value *i* on demand. Each column segment
+    is decompressed and decoded the first time a value needs it and then
+    cached. The cache drops its least recently used segments once it passes
+    256 MB.
+  * `Defuser` defuses each value as it's decoded, the same way `super` does.
+  * The last 2,000 values are cached. Values that drop out of the cache,
+    like rows that have scrolled away, can be garbage collected.
+
+  The views use super-ts's types and values directly: the fused types for
+  the table's columns, records for cells, the `Type` inside a type value for
   the inspector's type tree, and `toString()` for SUP.
-* **The views** (`src/views/`) are written in plain TypeScript and DOM. They're
-  modeled on zui's table and inspector and are virtualized, so they only
-  render the rows on screen and can scroll through hundreds of thousands
-  of values.
+* **The views** (`src/views/`) are written in plain TypeScript and DOM and
+  work on a source of values (`ValueSource`) instead of an array. They're
+  modeled on zui's table and inspector and only render, and so only decode,
+  what's on screen:
+  * The table renders only the rows and columns in view.
+  * The inspector only builds the rows of the values that are expanded, and
+    rebuilds them from the results if they've been dropped.
 
 There's no bundler or framework. The build compiles TypeScript to ES modules
 that browsers load directly, and the site has no runtime dependencies.
@@ -216,13 +240,14 @@ contents of `dist/`. Some things to configure:
 wasm/main.go              the engine (Go, built against the super repo)
 src/main.ts               entry point
 src/app.ts                the app: files, query, views, status
-src/engine/engine.ts      runs queries in the worker and decodes results (super-ts)
+src/engine/engine.ts      runs queries in the worker
+src/results.ts            query results: values decoded and defused on demand (super-ts)
 src/engine/worker.ts      loads super.wasm and runs queries off the main thread
 src/engine/protocol.ts    messages between the app and the worker
 src/views/table.ts        the table view
-src/views/columns.ts      table columns merged across shapes
+src/views/columns.ts      table columns from the results' fused types
 src/views/inspector.ts    the inspector view
-src/views/tree.ts         the inspector's tree model
+src/views/tree.ts         the inspector's tree model and ValueSource
 src/views/text.ts         the SUP view
 src/views/virtual.ts      the virtualized list behind all three views
 src/views/cells.ts        value text, colors, and JSON
@@ -243,7 +268,7 @@ test/                     unit tests (node --test)
   It uses `parser.ParseText`, `storage.NewInternalEngine`,
   `exec.NewEnvironment`, `compiler.NewCompilerWithEnv`,
   `runtime.CompileQuery`, `queryio.NewBSUPWriter`, and
-  `expr.NewSuperDefuse`.
+  `expr.NewSuperDefuse` (for Copy and Download).
 * **A file is read in the wrong format.** Pick the format from the *Format*
   menu.
 * **The page gets slow with huge results.** Lower *Show*, or aggregate in the

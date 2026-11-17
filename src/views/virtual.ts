@@ -7,6 +7,12 @@ export interface VirtualListOptions {
   render: (i: number) => HTMLElement
   /** An element kept at the top of the scroll area (e.g., a table header). */
   header?: HTMLElement
+  /**
+   * Called with the range of rows about to be rendered.  It may change the
+   * rows (calling resize and scrolling as needed) and returns true if it
+   * did, so the range is computed again.
+   */
+  prepare?: (first: number, last: number) => boolean
   className?: string
 }
 
@@ -48,6 +54,25 @@ export class VirtualList {
     this.refresh()
   }
 
+  /**
+   * Sets the number of rows without rendering, for prepare.  (setCount
+   * renders.)
+   */
+  resize(n: number) {
+    this.count = n
+    this.body.style.height = `${n * this.opts.rowHeight}px`
+  }
+
+  /** The height of a row. */
+  get rowHeight(): number {
+    return this.opts.rowHeight
+  }
+
+  /** The element that scrolls. */
+  get scroller(): HTMLElement {
+    return this.el
+  }
+
   /** Re-renders the rows in view (e.g., after their content changed). */
   refresh() {
     this.first = this.last = -1
@@ -85,10 +110,16 @@ export class VirtualList {
   private update() {
     const h = this.opts.rowHeight
     const headerH = this.opts.header?.offsetHeight ?? 0
-    const top = Math.max(0, this.el.scrollTop)
-    const view = Math.max(this.el.clientHeight - headerH, h)
-    const first = Math.max(0, Math.floor(top / h) - OVERSCAN)
-    const last = Math.min(this.count, Math.ceil((top + view) / h) + OVERSCAN)
+    let first = 0
+    let last = 0
+    for (let pass = 0; ; pass++) {
+      const top = Math.max(0, this.el.scrollTop)
+      const view = Math.max(this.el.clientHeight - headerH, h)
+      first = Math.max(0, Math.floor(top / h) - OVERSCAN)
+      last = Math.min(this.count, Math.ceil((top + view) / h) + OVERSCAN)
+      if (pass >= 4 || !this.opts.prepare?.(first, last)) break
+      this.first = this.last = -1
+    }
     if (first === this.first && last === this.last) return
     this.first = first
     this.last = last

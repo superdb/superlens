@@ -1,16 +1,22 @@
 // The table view: one row per value with a column per (flattened) field,
-// like the results table in zui.
+// like the results table in zui.  Rows and columns are both virtualized:
+// only the cells in view are rendered, and only their values are decoded,
+// so a table can have any number of rows and thousands of columns.
 
-import type { Value } from "@superdb/super-ts"
+import type { Type, Value } from "@superdb/super-ts"
 import { cellText, isNumeric, kindClass } from "./cells.ts"
-import { CellLookup, buildColumns, shapeCounts, type TableColumn } from "./columns.ts"
+import { CellLookup, buildColumns, type TableColumn } from "./columns.ts"
+import { arraySource, type ValueSource } from "./tree.ts"
 import { VirtualList } from "./virtual.ts"
 
 const ROW_HEIGHT = 24
 const INDEX_WIDTH = 56
 const MIN_WIDTH = 48
 const MAX_WIDTH = 420
-const SAMPLE = 200
+// Values sampled to size the columns.
+const SAMPLE = 50
+// Columns rendered beyond each side of the view.
+const COLUMN_OVERSCAN = 3
 
 export class TableView {
   readonly el: HTMLElement
@@ -19,10 +25,16 @@ export class TableView {
 
   private list: VirtualList
   private header: HTMLElement
-  private values: readonly Value[] = []
+  private values: ValueSource = arraySource([])
   private columns: TableColumn[] = []
   private lookup = new CellLookup([])
   private widths = new Map<string, number>()
+  // The left edge of each column (after the index column), and the total
+  // width at the end.
+  private lefts: number[] = [0]
+  // The columns in view (from first up to last).
+  private firstCol = 0
+  private lastCol = 0
   private selected = -1
   private charWidth = 0
 
@@ -42,16 +54,23 @@ export class TableView {
       if (row) this.select(Number(row.dataset.row))
     })
     this.el.addEventListener("keydown", (ev) => this.onKey(ev))
+    this.el.addEventListener("scroll", () => this.onScroll())
+    new ResizeObserver(() => this.onScroll()).observe(this.el)
   }
 
-  setValues(values: readonly Value[]) {
+  /**
+   * Shows values.  types are the types of the values (or a supertype of
+   * them, such as their fused type), from which the columns come.
+   */
+  setValues(values: ValueSource, types: readonly Type[]) {
     this.values = values
-    this.columns = buildColumns([...shapeCounts(values).keys()])
+    this.columns = buildColumns(types)
     this.lookup = new CellLookup(this.columns)
     this.selected = -1
     this.sizeColumns()
-    this.renderHeader()
     this.list.scrollToTop()
+    this.firstCol = this.lastCol = -1
+    this.updateColumns()
     this.list.setCount(values.length)
   }
 
@@ -64,7 +83,7 @@ export class TableView {
     this.selected = i
     this.list.scrollIntoView(i)
     this.list.refresh()
-    this.onSelect?.(this.values[i], i)
+    this.onSelect?.(this.values.get(i), i)
   }
 
   clearSelection() {
@@ -103,7 +122,8 @@ export class TableView {
   // of its values.  Widths the user set by dragging are kept.
   private sizeColumns() {
     const cw = this.measureChar()
-    const sample = this.values.slice(0, SAMPLE)
+    const sample: Value[] = []
+    for (let i = 0; i < Math.min(SAMPLE, this.values.length); i++) sample.push(this.values.get(i))
     this.columns.forEach((col, k) => {
       if (this.widths.has(col.id)) return
       let chars = col.label.length + 2
@@ -113,21 +133,55 @@ export class TableView {
       }
       this.widths.set(col.id, Math.round(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, chars * cw + 18))))
     })
-    const total = INDEX_WIDTH + this.columns.reduce((n, c) => n + this.widths.get(c.id)!, 0)
-    this.list.setWidth(total)
+    this.layout()
+  }
+
+  // layout computes where the columns are.
+  private layout() {
+    this.lefts = [0]
+    for (const c of this.columns) this.lefts.push(this.lefts[this.lefts.length - 1] + this.width(c))
+    this.list.setWidth(INDEX_WIDTH + this.lefts[this.lefts.length - 1])
   }
 
   private width(col: TableColumn): number {
     return this.widths.get(col.id) ?? 120
   }
 
+  private onScroll() {
+    if (this.updateColumns()) this.list.refresh()
+  }
+
+  // updateColumns finds the columns in view and renders their headers.  It
+  // returns true if they changed.
+  private updateColumns(): boolean {
+    const n = this.columns.length
+    const left = Math.max(0, this.el.scrollLeft - INDEX_WIDTH)
+    const right = left + Math.max(this.el.clientWidth, 1)
+    // Find the first column ending after left and the first starting after right.
+    let first = 0
+    while (first < n && this.lefts[first + 1] <= left) first++
+    let last = first
+    while (last < n && this.lefts[last] < right) last++
+    first = Math.max(0, first - COLUMN_OVERSCAN)
+    last = Math.min(n, last + COLUMN_OVERSCAN)
+    if (first === this.firstCol && last === this.lastCol) return false
+    this.firstCol = first
+    this.lastCol = last
+    this.renderHeader()
+    return true
+  }
+
+  private spacer(width: number, className: string): HTMLElement {
+    const el = document.createElement("div")
+    el.className = className
+    el.style.width = `${width}px`
+    return el
+  }
+
   private renderHeader() {
-    const cells: HTMLElement[] = []
-    const idx = document.createElement("div")
-    idx.className = "th index"
-    idx.style.width = `${INDEX_WIDTH}px`
-    cells.push(idx)
-    for (const col of this.columns) {
+    const cells: HTMLElement[] = [this.spacer(INDEX_WIDTH, "th index"), this.spacer(this.lefts[this.firstCol], "th-spacer")]
+    for (let k = this.firstCol; k < this.lastCol; k++) {
+      const col = this.columns[k]
       const th = document.createElement("div")
       th.className = "th"
       th.style.width = `${this.width(col)}px`
@@ -154,20 +208,21 @@ export class TableView {
       const w = Math.max(MIN_WIDTH, Math.round(startW + e.clientX - startX))
       this.widths.set(col.id, w)
       th.style.width = `${w}px`
+      this.layout()
       this.list.refresh()
     }
     const up = () => {
       grip.removeEventListener("pointermove", move)
       grip.removeEventListener("pointerup", up)
-      const total = INDEX_WIDTH + this.columns.reduce((n, c) => n + this.width(c), 0)
-      this.list.setWidth(total)
+      this.firstCol = this.lastCol = -1
+      this.onScroll()
     }
     grip.addEventListener("pointermove", move)
     grip.addEventListener("pointerup", up)
   }
 
   private renderRow(i: number): HTMLElement {
-    const v = this.values[i]
+    const v = this.values.get(i)
     const row = document.createElement("div")
     row.className = i === this.selected ? "trow selected" : "trow"
     row.dataset.row = String(i)
@@ -175,8 +230,9 @@ export class TableView {
     idx.className = "td index"
     idx.style.width = `${INDEX_WIDTH}px`
     idx.textContent = String(i + 1)
-    row.append(idx)
-    this.columns.forEach((col, k) => {
+    row.append(idx, this.spacer(this.lefts[this.firstCol], "td-spacer"))
+    for (let k = this.firstCol; k < this.lastCol; k++) {
+      const col = this.columns[k]
       const td = document.createElement("div")
       td.style.width = `${this.width(col)}px`
       const cell = this.lookup.cell(v, k)
@@ -189,7 +245,7 @@ export class TableView {
         if (text.length > 20) td.title = text
       }
       row.append(td)
-    })
+    }
     return row
   }
 }
