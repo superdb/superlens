@@ -321,3 +321,48 @@ test("fully expanded type rows read as the type's SUP text", () => {
     assert.ok(m.rows().length > 3)
   }
 })
+
+test("the tree builds rows only for the values it's asked about", () => {
+  const values = Array.from({ length: 100_000 }, (_, i) =>
+    rec([
+      ["i", int(i)],
+      ["s", rec([["t", str("x")]])],
+    ]),
+  )
+  const asked = new Set<number>()
+  const m = new TreeModel({
+    length: values.length,
+    get: (i) => {
+      asked.add(i)
+      return values[i]
+    },
+  })
+  assert.equal(m.rowCount, 100_000)
+  assert.equal(m.row(50_000).kind, "value")
+  // Expand one value in the middle and another near the start.
+  m.toggle("50000")
+  m.toggle("10")
+  // Each takes 4 rows: the opening, i, s (collapsed), and the closing.
+  assert.equal(m.rowCount, 100_000 + 3 + 3)
+  assert.deepEqual(m.locate(10), { item: 10, offset: 0 })
+  assert.deepEqual(m.locate(13), { item: 10, offset: 3 })
+  assert.deepEqual(m.locate(14), { item: 11, offset: 0 })
+  assert.equal(m.rowOf(50_000), 50_003)
+  assert.equal(m.rowOf(50_001), 50_007)
+  const r = m.row(50_004)
+  assert.equal(r.kind === "value" && r.key, "i")
+  // Expand all expands values one at a time as they come into view.
+  m.expandItem(99_999, 1000)
+  assert.equal(m.rowOf(99_999) + 6, m.rowCount)
+  assert.ok(asked.size < 10, `asked for ${asked.size} values`)
+})
+
+test("columns come from fused types", () => {
+  const sub = ctx.record([field("x", TypeInt64)])
+  const f = ctx.fusion(ctx.union([TypeMissing, sub]))
+  const t = ctx.record([field("id", TypeString), field("p", f), field("q", ctx.fusion(ctx.union([TypeInt64, TypeMissing])))])
+  assert.deepEqual(
+    buildColumns([t]).map((c) => c.label),
+    ["id", "p.x", "q"],
+  )
+})

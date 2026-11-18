@@ -1,21 +1,19 @@
 // The app's interface to the query engine, which runs in a worker.
 //
-// Results come back from the worker as BSUP and are decoded here with
-// super-ts into typed values for the views.
+// Results come back from the worker as BSUP, with fused values left fused,
+// and are decoded here with super-ts as the views need them (see
+// ResultSet).
 
-import { QueryResult, TypeContext, decodeBSUPStream, type Type, type Value } from "@superdb/super-ts"
+import { TypeContext } from "@superdb/super-ts"
+import { ResultSet } from "../results.ts"
 import type { FromWorker, ToWorker } from "./protocol.ts"
 
 export interface QueryOutcome {
-  values: Value[]
-  shapes: Type[]
-  warnings: string[]
+  results: ResultSet
   /** Time spent running the query in the engine. */
   elapsedMs: number
-  /** Time spent decoding the results. */
+  /** Time spent reading the results' frames (their values are decoded later). */
   decodeMs: number
-  /** Size of the BSUP results. */
-  bytes: number
 }
 
 export interface EngineOptions {
@@ -236,20 +234,8 @@ export class Engine {
     })
     if (msg.type !== "result") throw new Error(`unexpected engine message ${msg.type}`)
     const start = performance.now()
-    const bsup = msg.bsup
-    async function* chunks() {
-      yield bsup
-    }
-    const result = new QueryResult(decodeBSUPStream(chunks(), { context: this.context }))
-    const values = await result.collect()
-    return {
-      values,
-      shapes: result.shapes,
-      warnings: result.warnings,
-      elapsedMs: msg.elapsedMs,
-      decodeMs: performance.now() - start,
-      bytes: bsup.length,
-    }
+    const results = new ResultSet(msg.bsup, this.context)
+    return { results, elapsedMs: msg.elapsedMs, decodeMs: performance.now() - start }
   }
 
   /**

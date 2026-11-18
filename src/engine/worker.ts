@@ -31,6 +31,7 @@ interface SuperLensWasm {
     inputFormat: string
     outputFormat: string
     limit: number
+    fusion?: boolean
   }): Promise<Uint8Array<ArrayBuffer> | string>
   version(): string
 }
@@ -297,6 +298,10 @@ self.onmessage = async (ev: MessageEvent<ToWorker>) => {
           inputFormat: req.format,
           outputFormat: "bsup",
           limit: req.limit,
+          // Fused values stay fused.  The app defuses the ones it shows,
+          // which takes far less memory than defusing them all here,
+          // especially when values have many different types.
+          fusion: true,
         })
         if (typeof out === "string") throw new Error("engine returned text instead of BSUP")
         post({ type: "result", id: req.id, bsup: out, elapsedMs: performance.now() - start }, [out.buffer])

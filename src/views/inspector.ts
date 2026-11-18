@@ -1,10 +1,18 @@
 // The inspector: values as an expandable tree, like the inspector in zui.
 // Type values expand too, into the fields and members of their types.
 
-import type { Value } from "@superdb/super-ts"
 import { kindClass, sup, truncate } from "./cells.ts"
 import { VirtualList } from "./virtual.ts"
-import { TreeModel, holdsType, openText, typeText, typeTitle, valueTitle, type Row } from "./tree.ts"
+import {
+  TreeModel,
+  holdsType,
+  openText,
+  typeText,
+  typeTitle,
+  valueTitle,
+  type Row,
+  type ValueSource,
+} from "./tree.ts"
 
 const ROW_HEIGHT = 22
 const INDENT = 16
@@ -13,26 +21,40 @@ const MAX_PREVIEW = 400
 /** Rows to show when results are first displayed. */
 export const AUTO_EXPAND_BUDGET = 400
 
+/**
+ * After Expand all, each value is expanded when it scrolls into view, as
+ * far as this many rows allow.
+ */
+const EXPAND_ALL_BUDGET = 20_000
+
 export class InspectorView {
   readonly el: HTMLElement
   private list: VirtualList
   private model = new TreeModel([])
-  private rows: Row[] = []
   /**
    * Whether new values open collapsed.  expandAll and collapseAll set it, so
    * the last one used carries over to the next values.
    */
   collapsed = false
+  // After Expand all, values expand as they scroll into view.  (Expanding
+  // them all up front would mean decoding them all.)
+  private expandingAll = false
 
   constructor() {
-    this.list = new VirtualList({ rowHeight: ROW_HEIGHT, render: (i) => this.renderRow(i), className: "inspector" })
+    this.list = new VirtualList({
+      rowHeight: ROW_HEIGHT,
+      render: (i) => this.renderRow(i),
+      prepare: (first, last) => this.prepare(first, last),
+      className: "inspector",
+    })
     this.el = this.list.el
     this.el.addEventListener("click", (ev) => this.onClick(ev))
   }
 
   /** Shows values, expanded as far as budget rows allow unless collapsed is set. */
-  setValues(values: readonly Value[], budget = AUTO_EXPAND_BUDGET) {
-    this.model = new TreeModel(values)
+  setValues(source: ValueSource, budget = AUTO_EXPAND_BUDGET) {
+    this.model = new TreeModel(source)
+    this.expandingAll = false
     if (!this.collapsed) this.model.expandWithin(budget)
     this.list.scrollToTop()
     this.update()
@@ -40,26 +62,53 @@ export class InspectorView {
 
   expandAll() {
     this.collapsed = false
-    this.model.expandWithin(100_000, 64)
-    this.update()
+    this.expandingAll = true
+    this.list.refresh()
   }
 
   collapseAll() {
     this.collapsed = true
+    this.expandingAll = false
     this.model.collapseAll()
     this.update()
   }
 
   private update() {
-    this.rows = this.model.rows()
-    this.list.setCount(this.rows.length)
+    this.list.setCount(this.model.rowCount)
+  }
+
+  // prepare expands the values about to be shown after Expand all.  The row
+  // at the top of the view stays put, so values above it that expand don't
+  // move what's being looked at.
+  private prepare(first: number, last: number): boolean {
+    if (!this.expandingAll || last <= first) return false
+    const m = this.model
+    const h = this.list.rowHeight
+    const scroller = this.list.scroller
+    const topRow = Math.floor(scroller.scrollTop / h)
+    const anchor = topRow < m.rowCount ? m.locate(topRow) : undefined
+    const from = m.locate(first).item
+    const to = m.locate(Math.min(last, m.rowCount) - 1).item
+    let changed = false
+    for (let i = from; i <= to; i++) {
+      if (m.isOpened(i)) continue
+      m.expandItem(i, EXPAND_ALL_BUDGET)
+      // A value that can't expand is marked so it isn't tried again.
+      if (!m.isOpened(i)) m.toggle(String(i))
+      changed = true
+    }
+    if (!changed) return false
+    this.list.resize(m.rowCount)
+    if (anchor) scroller.scrollTop = (m.rowOf(anchor.item) + anchor.offset) * h + (scroller.scrollTop % h)
+    return true
   }
 
   private onClick(ev: MouseEvent) {
     const target = (ev.target as HTMLElement).closest<HTMLElement>("[data-row]")
     if (!target) return
-    const row = this.rows[Number(target.dataset.row)]
-    if (!row) return
+    const index = Number(target.dataset.row)
+    if (!(index < this.model.rowCount)) return
+    const row = this.model.row(index)
     if ((row.kind === "value" || row.kind === "type") && row.expandable) {
       // Don't collapse when the user is selecting text.
       if (window.getSelection()?.toString()) return
@@ -72,7 +121,7 @@ export class InspectorView {
   }
 
   private renderRow(i: number): HTMLElement {
-    const row = this.rows[i]
+    const row: Row = this.model.row(i)
     const el = document.createElement("div")
     el.className = "irow"
     el.dataset.row = String(i)

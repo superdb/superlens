@@ -739,3 +739,9 @@ button.more {
 [hidden] {
   display: none !important;
 }
+
+/* Spacers standing in for the table columns that aren't rendered. */
+.th-spacer,
+.td-spacer {
+  flex: none;
+}

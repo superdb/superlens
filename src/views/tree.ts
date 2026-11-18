@@ -308,24 +308,143 @@ function closeText(n: Node): string {
   return s
 }
 
+/** Values for a view, which may decode them only when they're asked for. */
+export interface ValueSource {
+  readonly length: number
+  get(i: number): Value
+}
+
+/** A source for values in memory. */
+export function arraySource(values: readonly Value[]): ValueSource {
+  return { length: values.length, get: (i) => values[i] }
+}
+
+// How many subtrees of top-level values to keep built.  Others are rebuilt
+// (from the source) when they're needed again, so the rows of values that
+// have scrolled out of view can be garbage collected.
+const SUBTREE_CACHE = 500
+
+/**
+ * The tree's rows.  A value at the top of the tree takes one row when it's
+ * collapsed and the rows of its subtree when it's expanded.  Only the
+ * subtrees of expanded values are built, and only when they're needed, so
+ * the tree can hold any number of values without decoding them all.
+ */
 export class TreeModel {
-  readonly values: readonly Value[]
+  readonly source: ValueSource
   private expanded = new Set<string>()
   private shown = new Map<string, number>()
-  private cache: Row[] | undefined
+  // The number of rows of each expanded top-level value.
+  private sizes = new Map<number, number>()
+  // The keys of sizes in order, with the extra rows before each.
+  private order: number[] | undefined
+  private extra: number[] = []
+  private total = 0
+  private subtrees = new Map<number, Row[]>()
 
-  constructor(values: readonly Value[]) {
-    this.values = values
+  constructor(source: ValueSource | readonly Value[]) {
+    this.source = "get" in source ? source : arraySource(source)
+    this.total = this.source.length
   }
 
-  /** The visible rows. */
+  /** The number of rows. */
+  get rowCount(): number {
+    return this.total
+  }
+
+  /** All of the rows (which builds the subtree of every expanded value). */
   rows(): Row[] {
-    if (!this.cache) {
-      const out: Row[] = []
-      this.values.forEach((value, i) => this.walk(out, { kind: "value", value }, String(i), undefined, 0))
-      this.cache = out
+    const out: Row[] = []
+    for (let i = 0; i < this.source.length; i++) out.push(...this.subtree(i))
+    return out
+  }
+
+  /** Row r. */
+  row(r: number): Row {
+    const { item, offset } = this.locate(r)
+    return this.subtree(item)[offset]
+  }
+
+  private index() {
+    if (this.order) return
+    this.order = [...this.sizes.keys()].sort((a, b) => a - b)
+    this.extra = []
+    let extra = 0
+    for (const i of this.order) {
+      this.extra.push(extra)
+      extra += this.sizes.get(i)! - 1
     }
-    return this.cache
+  }
+
+  /** The top-level value at row r and the row's position in its subtree. */
+  locate(r: number): { item: number; offset: number } {
+    this.index()
+    const order = this.order!
+    // Find the last expanded value starting at or before row r.
+    let lo = 0
+    let hi = order.length - 1
+    let k = -1
+    while (lo <= hi) {
+      const mid = (lo + hi) >>> 1
+      if (order[mid] + this.extra[mid] <= r) {
+        k = mid
+        lo = mid + 1
+      } else {
+        hi = mid - 1
+      }
+    }
+    if (k < 0) return { item: r, offset: 0 }
+    const start = order[k] + this.extra[k]
+    const size = this.sizes.get(order[k])!
+    if (r < start + size) return { item: order[k], offset: r - start }
+    return { item: order[k] + 1 + (r - start - size), offset: 0 }
+  }
+
+  /** The row of top-level value i. */
+  rowOf(i: number): number {
+    this.index()
+    const order = this.order!
+    let lo = 0
+    let hi = order.length
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1
+      if (order[mid] < i) lo = mid + 1
+      else hi = mid
+    }
+    if (lo === 0) return i
+    return i + this.extra[lo - 1] + this.sizes.get(order[lo - 1])! - 1
+  }
+
+  // subtree returns the rows of top-level value i, building them if needed.
+  private subtree(i: number): Row[] {
+    let rows = this.subtrees.get(i)
+    if (rows) {
+      this.subtrees.delete(i)
+      this.subtrees.set(i, rows)
+      return rows
+    }
+    rows = []
+    this.walk(rows, { kind: "value", value: this.source.get(i) }, String(i), undefined, 0)
+    this.subtrees.set(i, rows)
+    if (this.subtrees.size > SUBTREE_CACHE) this.subtrees.delete(this.subtrees.keys().next().value!)
+    this.setSize(i, rows.length)
+    return rows
+  }
+
+  private setSize(i: number, size: number) {
+    const old = this.sizes.get(i) ?? 1
+    if (old === size) return
+    if (size > 1) this.sizes.set(i, size)
+    else this.sizes.delete(i)
+    this.total += size - old
+    this.order = undefined
+  }
+
+  // rebuild rebuilds the subtree of top-level value i after its expansion
+  // changed.
+  private rebuild(i: number) {
+    this.subtrees.delete(i)
+    this.subtree(i)
   }
 
   private walk(out: Row[], node: Node, path: string, key: string | undefined, depth: number) {
@@ -345,35 +464,62 @@ export class TreeModel {
     return this.expanded.has(path)
   }
 
+  /** Whether top-level value i has been expanded (by any of the methods). */
+  isOpened(i: number): boolean {
+    return this.expanded.has(String(i))
+  }
+
   toggle(path: string) {
     if (this.expanded.has(path)) this.expanded.delete(path)
     else this.expanded.add(path)
-    this.cache = undefined
+    this.rebuild(parseInt(path, 10))
   }
 
   showMore(parent: string) {
     this.shown.set(parent, (this.shown.get(parent) ?? PAGE) + PAGE)
-    this.cache = undefined
+    this.rebuild(parseInt(parent, 10))
   }
 
   collapseAll() {
     this.expanded.clear()
     this.shown.clear()
-    this.cache = undefined
+    this.sizes.clear()
+    this.subtrees.clear()
+    this.order = undefined
+    this.total = this.source.length
   }
 
   /**
    * Expands the tree breadth first while the number of rows stays within
    * budget, so small results are shown in full and big ones stay compact.
+   * Only the first budget values can be looked at, so a result with more
+   * values than budget stays collapsed.
    */
   expandWithin(budget: number, maxDepth = 12) {
-    this.expanded.clear()
-    this.shown.clear()
-    let total = this.values.length
-    let level: { node: Node; path: string }[] = this.values.map((value, i) => ({
-      node: { kind: "value", value },
+    this.collapseAll()
+    const n = Math.min(this.source.length, budget)
+    this.expandBreadthFirst(
+      Array.from({ length: n }, (_, i) => i),
+      this.source.length,
+      budget,
+      maxDepth,
+    )
+  }
+
+  /**
+   * Expands top-level value i breadth first while its subtree stays within
+   * budget rows (e.g., to show it fully expanded when it scrolls into view).
+   */
+  expandItem(i: number, budget: number, maxDepth = 64) {
+    this.expandBreadthFirst([i], 1, budget, maxDepth)
+  }
+
+  private expandBreadthFirst(items: number[], total: number, budget: number, maxDepth: number) {
+    let level: { node: Node; path: string }[] = items.map((i) => ({
+      node: { kind: "value", value: this.source.get(i) },
       path: String(i),
     }))
+    const touched = new Set<number>()
     for (let depth = 0; depth < maxDepth && level.length > 0 && total < budget; depth++) {
       const next: { node: Node; path: string }[] = []
       for (const { node, path } of level) {
@@ -384,10 +530,11 @@ export class TreeModel {
         if (total + added > budget) continue
         total += added
         this.expanded.add(path)
+        touched.add(parseInt(path, 10))
         children(node, 0, shown).forEach((c, k) => next.push({ node: c.node, path: `${path}/${k}` }))
       }
       level = next
     }
-    this.cache = undefined
+    for (const i of touched) this.rebuild(i)
   }
 }
