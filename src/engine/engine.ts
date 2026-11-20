@@ -241,12 +241,12 @@ export class Engine {
   /**
    * Runs a query over files with no limit and returns all of its output in
    * outputFormat (e.g., "csv"): a string for a text format, or bytes for a
-   * binary one.
+   * binary one.  fusion keeps fusion values instead of defusing them.
    */
   export(
     program: string,
     files: readonly File[],
-    opts: { format: string; outputFormat: string },
+    opts: { format: string; outputFormat: string; fusion: boolean },
   ): Promise<string | Uint8Array<ArrayBuffer>> {
     return this.track(async () => {
       await this.load(files)
@@ -256,6 +256,7 @@ export class Engine {
         program,
         format: opts.format,
         outputFormat: opts.outputFormat,
+        fusion: opts.fusion,
       })
       if (msg.type !== "exported") throw new Error(`unexpected engine message ${msg.type}`)
       return msg.output
