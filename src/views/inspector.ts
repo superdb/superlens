@@ -63,6 +63,7 @@ export class InspectorView {
   expandAll() {
     this.collapsed = false
     this.expandingAll = true
+    this.model.forgetExpandOnce()
     this.list.refresh()
   }
 
@@ -78,28 +79,23 @@ export class InspectorView {
   }
 
   // prepare expands the values about to be shown after Expand all.  The row
-  // at the top of the view stays put, so values above it that expand don't
-  // move what's being looked at.
+  // at the top of the view stays put, so values that expand, including the
+  // one it's in, don't move what's being looked at.
   private prepare(first: number, last: number): boolean {
     if (!this.expandingAll || last <= first) return false
     const m = this.model
     const h = this.list.rowHeight
     const scroller = this.list.scroller
     const topRow = Math.floor(scroller.scrollTop / h)
-    const anchor = topRow < m.rowCount ? m.locate(topRow) : undefined
+    const anchor = topRow < m.rowCount ? { item: m.locate(topRow).item, path: m.row(topRow).path } : undefined
     const from = m.locate(first).item
     const to = m.locate(Math.min(last, m.rowCount) - 1).item
-    let changed = false
-    for (let i = from; i <= to; i++) {
-      if (m.isOpened(i)) continue
-      m.expandItem(i, EXPAND_ALL_BUDGET)
-      // A value that can't expand is marked so it isn't tried again.
-      if (!m.isOpened(i)) m.toggle(String(i))
-      changed = true
-    }
-    if (!changed) return false
+    if (!m.expandOnce(from, to, EXPAND_ALL_BUDGET)) return false
     this.list.resize(m.rowCount)
-    if (anchor) scroller.scrollTop = (m.rowOf(anchor.item) + anchor.offset) * h + (scroller.scrollTop % h)
+    if (anchor) {
+      const row = m.rowOfPath(anchor.item, anchor.path) ?? m.rowOf(anchor.item)
+      scroller.scrollTop = row * h + (scroller.scrollTop % h)
+    }
     return true
   }
 

@@ -341,6 +341,8 @@ export class TreeModel {
   private extra: number[] = []
   private total = 0
   private subtrees = new Map<number, Row[]>()
+  // The top-level values expandOnce has expanded.
+  private expandedOnce = new Set<number>()
 
   constructor(source: ValueSource | readonly Value[]) {
     this.source = "get" in source ? source : arraySource(source)
@@ -398,6 +400,15 @@ export class TreeModel {
     const size = this.sizes.get(order[k])!
     if (r < start + size) return { item: order[k], offset: r - start }
     return { item: order[k] + 1 + (r - start - size), offset: 0 }
+  }
+
+  /**
+   * The row with path in top-level value i's subtree, or undefined if there
+   * isn't one (e.g., because its parent is collapsed).
+   */
+  rowOfPath(i: number, path: string): number | undefined {
+    const k = this.subtree(i).findIndex((r) => r.path === path)
+    return k < 0 ? undefined : this.rowOf(i) + k
   }
 
   /** The row of top-level value i. */
@@ -464,11 +475,6 @@ export class TreeModel {
     return this.expanded.has(path)
   }
 
-  /** Whether top-level value i has been expanded (by any of the methods). */
-  isOpened(i: number): boolean {
-    return this.expanded.has(String(i))
-  }
-
   toggle(path: string) {
     if (this.expanded.has(path)) this.expanded.delete(path)
     else this.expanded.add(path)
@@ -482,6 +488,7 @@ export class TreeModel {
 
   collapseAll() {
     this.expanded.clear()
+    this.expandedOnce.clear()
     this.shown.clear()
     this.sizes.clear()
     this.subtrees.clear()
@@ -514,6 +521,28 @@ export class TreeModel {
     this.expandBreadthFirst([i], 1, budget, maxDepth)
   }
 
+  /**
+   * Expands each top-level value from first to last (inclusive) as
+   * expandItem does, including one that's partly expanded, but only once:
+   * a value it has already expanded is left as it is (e.g., collapsed by
+   * the user).  Expand all calls it for the values coming into view.
+   * Returns whether it added any rows.
+   */
+  expandOnce(first: number, last: number, budget: number): boolean {
+    const before = this.total
+    for (let i = first; i <= last; i++) {
+      if (this.expandedOnce.has(i)) continue
+      this.expandedOnce.add(i)
+      this.expandItem(i, budget)
+    }
+    return this.total !== before
+  }
+
+  /** Lets expandOnce expand every value again, for another Expand all. */
+  forgetExpandOnce() {
+    this.expandedOnce.clear()
+  }
+
   private expandBreadthFirst(items: number[], total: number, budget: number, maxDepth: number) {
     let level: { node: Node; path: string }[] = items.map((i) => ({
       node: { kind: "value", value: this.source.get(i) },
@@ -525,7 +554,8 @@ export class TreeModel {
       for (const { node, path } of level) {
         const n = childCount(node)
         if (n === 0) continue
-        const shown = Math.min(n, PAGE)
+        // As many children as are shown, which "show more" may have raised.
+        const shown = Math.min(n, this.shown.get(path) ?? PAGE)
         const added = shown + 1 + (shown < n ? 1 : 0)
         if (total + added > budget) continue
         total += added
