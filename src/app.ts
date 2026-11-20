@@ -472,7 +472,11 @@ export class App {
     status.title = ""
     this.clearExportNotes()
     this.setRunning(true)
-    const output = this.engine.export(query, shown.files, { format: shown.inputFormat, outputFormat: f.name })
+    const output = this.engine.export(query, shown.files, {
+      format: shown.inputFormat,
+      outputFormat: f.name,
+      fusion: f.fusion,
+    })
     const done = copy
       ? writeClipboard(output.then((out) => (typeof out === "string" ? out : new TextDecoder().decode(out))))
           // If the clipboard failed because the query did, say why the query

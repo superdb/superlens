@@ -14,21 +14,27 @@ export interface ExportFormat {
   binary: boolean
   /** Formats that need one set of columns for all values get "| fuse". */
   tabular: boolean
+  /**
+   * Keeps fusion values instead of defusing them, which super does only
+   * for BSUP (super -f bsup).  Whatever reads the file defuses them when
+   * it shows the values.
+   */
+  fusion: boolean
 }
 
 // The same formats as the input Format menu, in alphabetical order by
 // label, as there.  SuperDB writes JSON as one value per line, so it's
 // called NDJSON here, as in zui.
 export const EXPORT_FORMATS: readonly ExportFormat[] = [
-  { name: "arrows", label: "Arrow IPC stream", ext: "arrows", binary: true, tabular: true },
-  { name: "bsup", label: "BSUP", ext: "bsup", binary: true, tabular: false },
-  { name: "csv", label: "CSV", ext: "csv", binary: false, tabular: true },
-  { name: "line", label: "lines of text", ext: "txt", binary: false, tabular: false },
-  { name: "json", label: "NDJSON", ext: "ndjson", binary: false, tabular: false },
-  { name: "parquet", label: "Parquet", ext: "parquet", binary: true, tabular: true },
-  { name: "sup", label: "SUP", ext: "sup", binary: false, tabular: false },
-  { name: "tsv", label: "TSV", ext: "tsv", binary: false, tabular: true },
-  { name: "zeek", label: "Zeek", ext: "log", binary: false, tabular: false },
+  { name: "arrows", label: "Arrow IPC stream", ext: "arrows", binary: true, tabular: true, fusion: false },
+  { name: "bsup", label: "BSUP", ext: "bsup", binary: true, tabular: false, fusion: true },
+  { name: "csv", label: "CSV", ext: "csv", binary: false, tabular: true, fusion: false },
+  { name: "line", label: "lines of text", ext: "txt", binary: false, tabular: false, fusion: false },
+  { name: "json", label: "NDJSON", ext: "ndjson", binary: false, tabular: false, fusion: false },
+  { name: "parquet", label: "Parquet", ext: "parquet", binary: true, tabular: true, fusion: false },
+  { name: "sup", label: "SUP", ext: "sup", binary: false, tabular: false, fusion: false },
+  { name: "tsv", label: "TSV", ext: "tsv", binary: false, tabular: true, fusion: false },
+  { name: "zeek", label: "Zeek", ext: "log", binary: false, tabular: false, fusion: false },
 ]
 
 export const DEFAULT_EXPORT_FORMAT = "sup"

@@ -129,8 +129,9 @@ HTML, JavaScript, CSS, and the query engine (`super.wasm`).
     engine (as `super` does on output) and writing the result means encoding
     a vector for every distinct type. With tens of thousands of types, that
     runs out of the engine's 4 GB. Left fused, the result is a few column
-    frames of one supertype. (Copy and Download still defuse, since their
-    output is meant to match `super`'s.)
+    frames of one supertype. (Copy and Download match `super`'s output, so
+    they defuse every format except BSUP, which keeps the fusion values as
+    `super -f bsup` does.)
   * There's a result limit that sends a warning when it's reached.
 * **The worker** loads the engine and runs queries off the main thread, so
   the page stays responsive. Stopping a query replaces the worker, reusing

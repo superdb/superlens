@@ -317,6 +317,7 @@ self.onmessage = async (ev: MessageEvent<ToWorker>) => {
           inputFormat: req.format,
           outputFormat: req.outputFormat,
           limit: 0,
+          fusion: req.fusion,
         })
         post({ type: "exported", id: req.id, output: out }, typeof out === "string" ? [] : [out.buffer])
       } catch (e) {

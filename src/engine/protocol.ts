@@ -31,6 +31,8 @@ export interface ExportRequest {
   program: string
   format: string
   outputFormat: string
+  /** Keeps fusion values instead of defusing them, as for BSUP. */
+  fusion: boolean
 }
 
 export type ToWorker = LoadRequest | InputsRequest | RunRequest | ExportRequest

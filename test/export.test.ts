@@ -21,6 +21,11 @@ test("export formats are found by name, with SUP as the default", () => {
     EXPORT_FORMATS.filter((f) => f.tabular).map((f) => f.name),
     ["arrows", "csv", "parquet", "tsv"],
   )
+  // Only BSUP keeps fusion values, as in super.
+  assert.deepEqual(
+    EXPORT_FORMATS.filter((f) => f.fusion).map((f) => f.name),
+    ["bsup"],
+  )
   // The menu is in alphabetical order.
   const labels = EXPORT_FORMATS.map((f) => f.label)
   assert.deepEqual(labels, [...labels].sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" })))
