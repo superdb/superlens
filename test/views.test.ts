@@ -83,6 +83,82 @@ test("tree expands within a budget and toggles", () => {
   assert.deepEqual(lines(new TreeModel([v]), false), ['{a:1,b:{c:"x"}}'])
 })
 
+// The rows of {a:1,b:{c:"x"}} when it's fully expanded.
+const fullRows = ["<open>", "  a: 1", "  b: <open>", '    c: "x"', "  }", "}"]
+
+test("Expand all fully opens values that were opened partway", () => {
+  const v = rec([
+    ["a", int(1)],
+    ["b", rec([["c", str("x")]])],
+  ])
+  const m = new TreeModel([v, v, v])
+  // A budget that opens the first two values but not their b fields, as
+  // results open when they're too big to show fully.
+  m.expandWithin(9)
+  assert.deepEqual(lines(m, false).slice(0, 4), ["<open>", "  a: 1", '  b: {c:"x"}', "}"])
+  assert.equal(m.expandOnce(0, 2, 1000), true)
+  assert.deepEqual(lines(m, false), [...fullRows, ...fullRows, ...fullRows])
+})
+
+test("a value collapsed after Expand all stays collapsed", () => {
+  const v = rec([
+    ["a", int(1)],
+    ["b", rec([["c", str("x")]])],
+  ])
+  const m = new TreeModel([v, v])
+  m.expandOnce(0, 1, 1000)
+  m.toggle("0")
+  // The value is in view again (e.g., when the view is redrawn).
+  assert.equal(m.expandOnce(0, 1, 1000), false)
+  assert.deepEqual(lines(m, false), ['{a:1,b:{c:"x"}}', ...fullRows])
+  // Another Expand all opens it again.
+  m.forgetExpandOnce()
+  assert.equal(m.expandOnce(0, 1, 1000), true)
+  assert.deepEqual(lines(m, false), [...fullRows, ...fullRows])
+  // So does Expand all after Collapse all.
+  m.collapseAll()
+  m.expandOnce(0, 1, 1000)
+  assert.deepEqual(lines(m, false), [...fullRows, ...fullRows])
+})
+
+test("Expand all opens the children that show more revealed, within its budget", () => {
+  const items = Array.from({ length: PAGE * 2 + 50 }, (_, k) => rec([["k", rec([["c", int(k)]])]]))
+  const arr = new ArrayValue(ctx.array(items[0].type), items)
+  const collapsed = (m: TreeModel) => m.rows().filter((r) => r.kind === "value" && r.expandable && !r.expanded)
+  let m = new TreeModel([arr])
+  m.toggle("0")
+  m.showMore("0")
+  m.expandOnce(0, 0, 100_000)
+  // The array's opening, 2 * PAGE elements of 5 rows each, "show more", and
+  // the closing.
+  assert.equal(m.rowCount, 1 + 2 * PAGE * 5 + 2)
+  assert.equal(collapsed(m).length, 0)
+  // With a budget smaller than the rows already shown, nothing more opens.
+  m = new TreeModel([arr])
+  m.toggle("0")
+  m.showMore("0")
+  m.expandOnce(0, 0, 300)
+  assert.equal(m.rowCount, 1 + 2 * PAGE + 2)
+})
+
+test("a row is found by its path after rows are added above it", () => {
+  const v = rec([
+    ["b", rec([["c", str("x")]])],
+    ["a", int(1)],
+  ])
+  const m = new TreeModel([v, v])
+  m.toggle("1")
+  assert.equal(m.rowOfPath(1, "1/1"), 3)
+  // c isn't shown while b is collapsed.
+  assert.equal(m.rowOfPath(1, "1/0/0"), undefined)
+  // Expanding adds rows before a: the first value's, and b's inside its own.
+  m.expandOnce(0, 1, 1000)
+  const r = m.rowOfPath(1, "1/1")!
+  assert.equal(r, 10)
+  const row = m.row(r)
+  assert.equal(row.kind === "value" && row.key, "a")
+})
+
 test("tree pages large containers", () => {
   const items = Array.from({ length: PAGE + 50 }, (_, k) => int(k))
   const m = new TreeModel([new ArrayValue(ctx.array(TypeInt64), items)])
