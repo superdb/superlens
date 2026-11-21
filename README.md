@@ -182,7 +182,7 @@ that browsers load directly, and the site has no runtime dependencies.
 ### Build and run
 
 ```sh
-npm install          # installs TypeScript (the only dependency, used at build time)
+npm install          # installs TypeScript (for the build) and Playwright (for the smoke tests)
 npm run build        # builds the engine and the app into dist/
 npm run serve        # serves dist/ at http://localhost:8080/
 ```
@@ -208,6 +208,7 @@ Other scripts:
 | `npm run build:wasm` | rebuilds just the engine, e.g., after pulling super |
 | `npm run check` | type checks the app (run a build first so the super-ts types are in `dist/vendor`) |
 | `npm test` | runs the unit tests (tree, columns, cell formatting) against the super-ts sources |
+| `npm run test:e2e` | runs the browser smoke tests in `e2e/` against `dist/` (see [Testing](#testing)) |
 | `npm run clean` | removes `dist/` |
 
 Examples:
@@ -217,6 +218,30 @@ SUPER_REPO=~/src/super npm run build:wasm      # use another super checkout
 SUPER_TS=~/src/super-ts npm run build:app      # use another super-ts checkout
 npm run serve -- --port 9000
 ```
+
+## Testing
+
+`npm test` runs the unit tests in Node. `npm run test:e2e` runs smoke tests
+of the built site in headless Chromium with
+[Playwright](https://playwright.dev): it serves `dist/` the way
+`npm run serve` does, then opens the sample data and some small files, runs
+queries, checks what the views show, and downloads results. They catch a
+build that's broken, e.g., by a change in super or super-ts. To run them:
+
+```sh
+npm run build
+npx playwright install chromium    # once, to download the browser
+npm run test:e2e
+```
+
+To run them against a site that's already up instead, such as a new deploy,
+set `SUPERLENS_URL` to its address, ending in a slash, e.g.,
+`SUPERLENS_URL=https://example.com/ npm run test:e2e`.
+
+GitHub Actions (`.github/workflows/test.yaml`) runs the build, the unit
+tests, and the smoke tests with the current `main` of super and super-ts on
+each pull request and merge. Run it by hand from the Actions tab to build
+with another branch or commit of either one.
 
 ## Hosting
 
@@ -256,6 +281,8 @@ src/views/choose.ts       picks the default view for a result
 public/                   index.html, style.css, favicon, sample data, _headers
 scripts/                  build, dev server, and wasm build scripts
 test/                     unit tests (node --test)
+e2e/                      browser smoke tests (Playwright; settings in playwright.config.ts)
+.github/workflows/        CI: build and test with super and super-ts main
 ```
 
 ## Troubleshooting
