@@ -708,13 +708,15 @@ export class App {
     }
   }
 
-  // flash shows text on a button for a moment.
+  // flash shows text on a button for a moment, in its .label if it has
+  // one, so its icon stays.
   private flash(button: HTMLElement, text: string) {
-    const label = button.dataset.label ?? button.textContent ?? ""
+    const target = button.querySelector<HTMLElement>(".label") ?? button
+    const label = button.dataset.label ?? target.textContent ?? ""
     button.dataset.label = label
-    button.textContent = text
+    target.textContent = text
     setTimeout(() => {
-      button.textContent = label
+      target.textContent = label
       delete button.dataset.label
     }, 1200)
   }

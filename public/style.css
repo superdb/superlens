@@ -1,62 +1,140 @@
+/*
+ * SuperLens styles, after the look of SuperDB Desktop (zui): its colors,
+ * Recursive monospace font, segmented toolbar tabs, gradient buttons, and
+ * value colors.
+ */
+
+/* Recursive (SIL Open Font License), the monospace font zui uses. */
+@font-face {
+  font-family: "Recursive";
+  src: url(fonts/recursive.woff2) format("woff2-variations");
+  font-style: oblique 0deg 15deg;
+  font-weight: 300 1000;
+  font-display: swap;
+}
+
 :root {
-  --mono-font: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-  --ui-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --bg: #ffffff;
-  --bg-2: #f6f7f9;
-  --bg-3: #eceef2;
-  --fg: #1d2129;
-  --fg-2: #5b6270;
-  --fg-3: #8b919c;
-  --border: #dde0e6;
-  --accent: #2f6fde;
-  --accent-fg: #ffffff;
-  --accent-soft: #e6eefc;
-  --row-alt: #fafbfc;
-  --selected: #dce8fd;
-  --c-string: #0f7b3d;
-  --c-number: #1d4fb8;
-  --c-bool: #8a3ab9;
-  --c-null: #9aa0a9;
-  --c-time: #a35200;
-  --c-net: #00788a;
-  --c-type: #6b4bb5;
-  --c-error: #c8312b;
-  --c-bytes: #6d6d6d;
-  --c-key: #5d3a8f;
-  --warn-bg: #fff7e0;
-  --warn-fg: #7a5600;
-  --error-bg: #fdecec;
-  --error-fg: #a1231d;
   color-scheme: light dark;
+
+  --mono-font: "Recursive", ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --ui-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* zui's palette */
+  --red: #f13737;
+  --green: #1adb91;
+  --orange: #ff7f00;
+  --yellow: #ffc933;
+  --primary-color-lighter: hsl(212, 89%, 82%);
+  --primary-color-light: hsl(212, 72%, 69%);
+  --primary-color: hsl(212, 72%, 59%);
+  --primary-color-dark: hsl(212, 78%, 50%);
+  --primary-color-darker: hsl(212, 88%, 35%);
+
+  --fg-color: #0f1e2e;
+  --fg-color-less: hsl(210, 4%, 40%);
+  --fg-color-least: hsl(210, 4%, 60%);
+  --bg-color: white;
+  --window-color: #f3f3f3;
+  --chrome-color: hsl(212, 10%, 97%);
+  --chrome-color-more: #e9eaeb;
+  --text-active: var(--primary-color-darker);
+  --wordmark-color: hsl(210, 6%, 45%);
+
+  --emphasis-bg-less: rgba(0, 0, 0, 0.03);
+  --emphasis-bg: rgba(0, 0, 0, 0.06);
+  --emphasis-bg-more: rgba(0, 0, 0, 0.09);
+  --emphasis-bg-most: rgba(0, 0, 0, 0.11);
+
+  --border-color: hsl(216, 10%, 87%);
+  --border-color-more: hsl(216, 10%, 70%);
+
+  --selected-bg: white;
+  --row-selected-bg: hsl(212, 89%, 94%);
+  --pill-bg: hsl(212, 89%, 92%);
+
+  --button-bg: linear-gradient(to bottom, hsl(0 0% 99%), hsl(0 0% 94%));
+  --button-shine: white;
+  --submit-bg: linear-gradient(to bottom, #4c91e2, #3170de);
+  --submit-border: #206cc6;
+
+  --hover-filter: brightness(95%);
+  --active-filter: brightness(93%);
+  --hover-duration: 75ms;
+  --pop-easing: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --radius-s: 3px;
+  --radius-m: 6px;
+  --radius-l: 12px;
+
+  --shadow-color: 0deg 0% 55%;
+  --shadow-elevation-low: 0.4px 0.5px 1px hsl(var(--shadow-color) / 0), 0.7px 1px 1.8px hsl(var(--shadow-color) / 0.19),
+    1.3px 1.9px 3.5px hsl(var(--shadow-color) / 0.38);
+  --shadow-elevation-medium: 0.4px 0.5px 1px hsl(var(--shadow-color) / 0),
+    1.4px 2px 3.7px hsl(var(--shadow-color) / 0.1), 2.3px 3.4px 6.2px hsl(var(--shadow-color) / 0.19),
+    3.9px 5.7px 10.4px hsl(var(--shadow-color) / 0.29), 6.7px 9.7px 17.7px hsl(var(--shadow-color) / 0.38);
+  --shadow-l: 12px 12px 48px rgba(0, 0, 0, 0.35);
+
+  /* zui's value colors */
+  --zed-null: #abadaf;
+  --zed-time: hsl(275, 55%, 50%);
+  --zed-symbol: hsl(212, 95%, 55%);
+  --zed-string: var(--fg-color);
+  --zed-key: hsl(212, 20%, 40%);
+  --zed-number: #e65835;
+  --zed-syntax: hsl(212, 17%, 55%);
+  --zed-error: hsl(6, 97%, 40%);
+  --zed-bytes: hsl(212, 10%, 45%);
+
+  --warn-bg: #fff4d6;
+  --warn-fg: #7a5600;
+  --error-bg: #fde2d8;
+  --error-fg: #a81f07;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #16181d;
-    --bg-2: #1d2027;
-    --bg-3: #262a33;
-    --fg: #e4e7ec;
-    --fg-2: #a3a9b5;
-    --fg-3: #737a87;
-    --border: #2f343e;
-    --accent: #5b8ff0;
-    --accent-soft: #233355;
-    --row-alt: #1a1d23;
-    --selected: #253a63;
-    --c-string: #7ccf8f;
-    --c-number: #8ab4ff;
-    --c-bool: #d19bf5;
-    --c-null: #737a87;
-    --c-time: #f0a65a;
-    --c-net: #5fc8d6;
-    --c-type: #b9a2f2;
-    --c-error: #ff7b72;
-    --c-bytes: #a0a0a0;
-    --c-key: #c6a8f0;
+    --fg-color: white;
+    --fg-color-less: rgba(255, 255, 255, 0.7);
+    --fg-color-least: rgba(255, 255, 255, 0.45);
+    --bg-color: hsl(44deg 8% 10%);
+    --window-color: #303231;
+    --chrome-color: hsl(0deg 0% 16%);
+    --chrome-color-more: hsl(0deg 0% 30%);
+    --text-active: var(--primary-color-lighter);
+    --wordmark-color: hsl(210, 6%, 70%);
+
+    --emphasis-bg-less: rgba(255, 255, 255, 0.05);
+    --emphasis-bg: rgba(255, 255, 255, 0.1);
+    --emphasis-bg-more: rgba(255, 255, 255, 0.15);
+    --emphasis-bg-most: rgba(255, 255, 255, 0.25);
+
+    --border-color: #393939;
+    --border-color-more: rgba(255, 255, 255, 0.25);
+
+    --selected-bg: rgba(255, 255, 255, 0.18);
+    --row-selected-bg: hsl(212, 45%, 26%);
+    --pill-bg: hsl(212, 45%, 26%);
+
+    --button-bg: linear-gradient(to top, hsl(0 0% 24%), hsl(0 0% 18%));
+    --button-shine: transparent;
+
+    --hover-filter: brightness(125%);
+    --active-filter: brightness(135%);
+
+    --shadow-color: 0deg 0% 0%;
+
+    --zed-key: hsl(212, 25%, 72%);
+    --zed-syntax: hsl(212, 15%, 60%);
+    --zed-number: #ff8a65;
+    --zed-time: hsl(275, 70%, 75%);
+    --zed-symbol: hsl(212, 90%, 70%);
+    --zed-error: #ff7b72;
+    --zed-bytes: hsl(212, 10%, 65%);
+
     --warn-bg: #3a3218;
     --warn-fg: #f0d58a;
-    --error-bg: #3d1f1f;
-    --error-fg: #ffb3ad;
+    --error-bg: #3d1f1a;
+    --error-fg: #ffb3a1;
   }
 }
 
@@ -74,12 +152,23 @@ body {
   display: flex;
   flex-direction: column;
   font: 13px/1.4 var(--ui-font);
-  color: var(--fg);
-  background: var(--bg);
+  color: var(--fg-color);
+  background: var(--window-color);
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Recursive's monospace, slightly casual and cursive, as zui sets it.  This
+ * goes on every element because the font shorthand resets it.  It has no
+ * effect on other fonts.
+ */
+*,
+::placeholder {
+  font-variation-settings: "MONO" 1, "CASL" 0.3, "CRSV" 0.5;
 }
 
 a {
-  color: var(--accent);
+  color: var(--primary-color);
   text-decoration: none;
 }
 a:hover {
@@ -88,71 +177,175 @@ a:hover {
 
 button,
 select,
-textarea {
+textarea,
+input {
   font: inherit;
   color: inherit;
 }
 
-button {
-  cursor: pointer;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  border-radius: 6px;
-  padding: 5px 12px;
-}
-button:hover {
-  background: var(--bg-2);
-}
-button:disabled {
-  opacity: 0.5;
-  /* No hover or click effects. */
-  pointer-events: none;
-}
-button.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-fg);
-}
-button.primary:hover {
-  filter: brightness(1.08);
-}
-button.link {
-  border: none;
-  background: none;
-  color: var(--accent);
-  padding: 4px 6px;
-}
-button.link:hover {
-  text-decoration: underline;
-}
-button.icon {
-  border: none;
-  background: none;
-  padding: 0 6px;
-  font-size: 16px;
-  line-height: 1;
-  color: var(--fg-3);
-}
-button.icon:hover {
-  color: var(--fg);
+:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
 
-select {
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 3px 6px;
-  background: var(--bg);
+[hidden] {
+  display: none !important;
+}
+
+.sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  fill: currentColor;
 }
 
 .spacer {
   flex: 1;
 }
 
+/* Scrollbars, as zui draws them. */
+* {
+  scrollbar-color: var(--emphasis-bg-most) transparent;
+}
+*::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
+  background-color: var(--emphasis-bg-less);
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--emphasis-bg);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+/* Buttons */
+
+button {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-m);
+  background: var(--button-bg);
+  box-shadow: inset 0 1px 0 var(--button-shine);
+  white-space: nowrap;
+  user-select: none;
+  font-weight: 500;
+  transition: filter var(--hover-duration), background var(--hover-duration), transform var(--hover-duration);
+}
+button:hover {
+  filter: var(--hover-filter);
+}
+button:active {
+  transition: none;
+  filter: var(--active-filter);
+  box-shadow: none;
+}
+button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  /* No hover or click effects. */
+  pointer-events: none;
+}
+
+/* The blue gradient button zui uses to submit. */
+button.submit {
+  background: var(--submit-bg);
+  border-color: var(--submit-border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  color: white;
+  font-weight: 600;
+  --hover-filter: brightness(105%);
+  --active-filter: brightness(115%);
+}
+
+/* zui's icon buttons: no chrome until hovered. */
+button.ghost,
+a.ghost,
+button.icon-button {
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+  color: var(--fg-color-less);
+  filter: none;
+}
+a.ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-m);
+  font-weight: 500;
+  transition: background var(--hover-duration);
+}
+button.ghost {
+  padding: 0 8px;
+}
+button.ghost:hover,
+a.ghost:hover,
+button.icon-button:hover {
+  background: var(--emphasis-bg);
+  color: var(--fg-color);
+  text-decoration: none;
+  filter: none;
+}
+button.ghost:active,
+button.icon-button:active {
+  background: var(--emphasis-bg-more);
+  transform: scale(0.98);
+}
+button.icon-button {
+  width: 28px;
+  padding: 0;
+}
+
+button.wide {
+  width: 100%;
+  height: 34px;
+  font-size: 14px;
+}
+
+/* Selects, with zui's chevron. */
+select {
+  appearance: none;
+  height: 28px;
+  padding: 0 26px 0 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-m);
+  background: var(--button-bg);
+  box-shadow: inset 0 1px 0 var(--button-shine);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23888'%3E%3Cpath d='M16.95 9.293a1 1 0 0 1 0 1.414l-4.243 4.243a1 1 0 0 1-1.414 0L7.05 10.707a1 1 0 0 1 1.414-1.414L12 12.828l3.536-3.535a1 1 0 0 1 1.414 0Z'/%3E%3C/svg%3E"),
+    var(--button-bg);
+  background-repeat: no-repeat;
+  background-position: right 6px center, 0 0;
+  background-size: 16px, auto;
+  font-weight: 500;
+  cursor: pointer;
+}
+select:hover {
+  filter: var(--hover-filter);
+}
+
 .field {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--fg-2);
+  color: var(--fg-color-less);
 }
 
 /* Top bar */
@@ -160,60 +353,93 @@ select {
 .topbar {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-2);
+  gap: 14px;
+  height: 46px;
+  padding: 0 10px 0 16px;
+  background: var(--window-color);
 }
 .brand {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-weight: 650;
-  font-size: 15px;
-  color: var(--fg);
+  color: var(--fg-color);
 }
 .brand:hover {
   text-decoration: none;
 }
-.privacy {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border-radius: 999px;
-  padding: 3px 10px;
-  border: 1px solid transparent;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 12px;
+.wordmark {
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: -0.2px;
 }
-.privacy:hover {
-  background: var(--accent-soft);
-  border-color: var(--accent);
+.wordmark,
+.title {
+  color: var(--wordmark-color);
+}
+.wordmark span,
+.title span {
+  color: var(--orange);
+}
+.privacy {
+  height: 22px;
+  padding: 0 10px 0 8px;
+  gap: 5px;
+  border: none;
+  border-radius: var(--radius-m);
+  background: var(--pill-bg);
+  box-shadow: none;
+  color: var(--text-active);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+  text-transform: uppercase;
+}
+.privacy .icon {
+  width: 13px;
+  height: 13px;
 }
 .links {
-  margin-left: auto;
   display: flex;
-  gap: 16px;
+  gap: 2px;
+}
+.links .icon {
+  width: 16px;
+  height: 16px;
 }
 
-/* Controls */
+/* Query controls: a card, like zui's editor pane. */
 
 .controls {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--border);
+  margin: 0 10px;
+  padding: 10px 10px 10px;
+  border: 1px solid var(--border-color);
+  border-bottom: none;
+  border-radius: var(--radius-l) var(--radius-l) 0 0;
+  background: var(--chrome-color);
 }
-.files-row,
-.query-row {
+.files-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  min-height: 28px;
 }
-.query-row {
-  align-items: flex-start;
+
+/* zui's pills: small, bold, uppercase. */
+.pill-label {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 0.67em;
+  border-radius: var(--radius-m);
+  background: var(--pill-bg);
+  color: var(--text-active);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
 }
 .chips {
   display: flex;
@@ -224,15 +450,21 @@ select {
   list-style: none;
   min-width: 0;
 }
+.chips:empty {
+  display: none;
+}
 .chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  max-width: 280px;
-  padding: 2px 4px 2px 10px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--bg-2);
+  max-width: 300px;
+  height: 24px;
+  padding: 0 2px 0 9px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-m);
+  background: var(--bg-color);
+  font: 500 12px/1 var(--mono-font);
+  box-shadow: var(--shadow-elevation-low);
 }
 .chip > span:first-child {
   overflow: hidden;
@@ -240,37 +472,86 @@ select {
   white-space: nowrap;
 }
 .chip .size {
-  color: var(--fg-3);
+  color: var(--fg-color-least);
   font-size: 11px;
   white-space: nowrap;
 }
+.chip button.icon {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  box-shadow: none;
+  color: var(--fg-color-least);
+  font-size: 15px;
+  line-height: 1;
+}
+.chip button.icon:hover {
+  background: var(--emphasis-bg);
+  color: var(--fg-color);
+  filter: none;
+}
 
+.editor {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 6px 6px 0;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-color);
+  transition: border-color var(--hover-duration), box-shadow var(--hover-duration);
+}
+.editor:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px hsl(212 72% 59% / 0.18);
+}
+.gutter {
+  flex: none;
+  width: 34px;
+  padding-top: 5px;
+  text-align: right;
+  color: var(--fg-color-least);
+  font: 13px/20px var(--mono-font);
+  user-select: none;
+}
 #query {
   flex: 1;
   resize: none;
-  min-height: 32px;
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
-  font: 13px/1.4 var(--mono-font);
+  min-height: 30px;
+  padding: 5px 0;
+  border: none;
+  background: none;
+  font: 14px/20px var(--mono-font);
   outline: none;
 }
-#query:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+#query::placeholder {
+  color: var(--fg-color-least);
 }
-.query-row button {
-  height: 32px;
+.editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-end;
+}
+#run-button {
+  min-width: 72px;
 }
 
-/* Results */
+/* Results: the white pane under the editor. */
 
 .results {
   flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  margin: 0 10px;
+  border: 1px solid var(--border-color);
+  border-top: none;
+  background: var(--bg-color);
+  overflow: hidden;
 }
 .results-bar {
   display: flex;
@@ -278,32 +559,55 @@ select {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 12px;
-  padding: 6px 16px;
-  border-bottom: 1px solid var(--border);
+  padding: 8px 10px;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--chrome-color);
 }
+
+/* zui's toolbar tabs: a segmented control with a raised selection. */
 .tabs {
   display: inline-flex;
   flex-shrink: 0;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  overflow: hidden;
+  gap: 2px;
+  height: 30px;
+  padding: 2px;
+  border-radius: 7px;
+  background: var(--emphasis-bg);
 }
 .tabs button {
+  height: 100%;
+  padding: 0 12px 0 10px;
+  gap: 5px;
   border: none;
-  border-radius: 0;
-  padding: 3px 12px;
-  background: var(--bg);
+  border-radius: 5px;
+  background: none;
+  box-shadow: none;
+  color: var(--fg-color-less);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+  text-transform: uppercase;
+  transition: background 200ms var(--pop-easing), color 200ms, box-shadow 200ms;
+  filter: none;
 }
-.tabs button + button {
-  border-left: 1px solid var(--border);
+.tabs button .icon {
+  width: 14px;
+  height: 14px;
+}
+.tabs button:hover:not(.active) {
+  background: var(--emphasis-bg-less);
+  color: var(--fg-color);
 }
 .tabs button.active {
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-weight: 600;
+  background: var(--selected-bg);
+  color: var(--fg-color);
+  box-shadow: var(--shadow-elevation-low);
 }
+
 .status {
-  color: var(--fg-2);
+  color: var(--fg-color-less);
+  font: 12px var(--mono-font);
   white-space: nowrap;
 }
 body.running .status::before {
@@ -311,8 +615,8 @@ body.running .status::before {
   display: inline-block;
   width: 10px;
   height: 10px;
-  margin-right: 6px;
-  border: 2px solid var(--accent);
+  margin-right: 7px;
+  border: 2px solid var(--primary-color);
   border-right-color: transparent;
   border-radius: 50%;
   vertical-align: -1px;
@@ -328,28 +632,32 @@ body.running .status::before {
   flex-wrap: wrap;
   justify-content: flex-end;
   align-items: center;
-  gap: 4px;
-}
-.actions button {
-  white-space: nowrap;
+  gap: 2px;
 }
 .export {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  margin: 0 8px;
+  gap: 2px;
+  margin: 0 8px 0 4px;
+  padding-left: 8px;
+  border-left: 1px solid var(--border-color);
 }
+.export .field {
+  margin-left: 4px;
+}
+
+/* Messages: zui's error well and a matching warning. */
 
 .messages:empty {
   display: none;
 }
 .messages {
-  padding: 8px 16px 0;
+  padding: 10px 10px 0;
 }
 .message {
   margin: 0 0 8px;
-  padding: 8px 12px;
-  border-radius: 6px;
+  padding: 10px 14px;
+  border-radius: var(--radius-m);
 }
 .message.error {
   background: var(--error-bg);
@@ -380,7 +688,8 @@ body.running .status::before {
 }
 .message.prose button {
   margin-left: 4px;
-  padding: 1px 8px;
+  height: 22px;
+  padding: 0 8px;
   font-size: 12px;
 }
 .message.prose details {
@@ -400,7 +709,7 @@ body.running .status::before {
   font-family: var(--mono-font);
   font-size: 12px;
   padding: 1px 4px;
-  border-radius: 3px;
+  border-radius: var(--radius-s);
   background: color-mix(in srgb, currentColor 10%, transparent);
 }
 
@@ -434,7 +743,7 @@ body.no-results .tabs {
   position: relative;
   overflow: auto;
   outline: none;
-  font: 12px/1 var(--mono-font);
+  font: 13px/1 var(--mono-font);
 }
 .vlist-body {
   position: relative;
@@ -450,42 +759,57 @@ body.no-results .tabs {
 
 /* Inspector */
 
+.inspector .vlist-rows {
+  padding-left: 6px;
+}
 .inspector .irow {
   display: flex;
   align-items: center;
   white-space: pre;
   padding-right: 16px;
   min-width: max-content;
+  border-radius: var(--radius-s);
 }
 .inspector .irow.expandable {
-  cursor: pointer;
+  cursor: default;
 }
 .inspector .irow:hover {
-  background: var(--bg-2);
+  background: var(--emphasis-bg-less);
 }
 .toggle {
   display: inline-block;
-  width: 14px;
+  width: 16px;
   flex: none;
-  color: var(--fg-3);
+  color: var(--zed-syntax);
   font-size: 10px;
+  text-align: center;
 }
 .key {
-  color: var(--c-key);
+  color: var(--zed-key);
 }
 .punct,
 .k-container {
-  color: var(--fg-2);
+  color: var(--zed-syntax);
 }
 button.more {
+  height: auto;
+  margin-left: 2px;
+  padding: 0 10px;
   border: none;
-  background: none;
-  padding: 0;
-  color: var(--accent);
+  border-radius: var(--radius-s);
+  background: var(--emphasis-bg);
+  box-shadow: none;
+  color: var(--zed-key);
   font: inherit;
+  line-height: 18px;
+}
+button.more:hover {
+  background: var(--emphasis-bg-more);
+  color: var(--fg-color);
+  filter: none;
 }
 
-/* Table */
+/* Table, after zui's */
 
 .table .thead {
   position: sticky;
@@ -494,20 +818,20 @@ button.more {
   display: flex;
   min-width: 100%;
   width: max-content;
-  height: 26px;
-  background: var(--bg-2);
-  border-bottom: 1px solid var(--border);
-  font: 600 12px/26px var(--ui-font);
-  color: var(--fg-2);
+  height: 32px;
+  background: var(--chrome-color);
+  border-bottom: 1px solid var(--border-color);
+  font: 500 13px/32px var(--ui-font);
+  color: var(--fg-color-less);
 }
 .th {
   position: relative;
   flex: none;
-  padding: 0 8px;
+  padding: 0 10px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--border-color);
 }
 .th .grip {
   position: absolute;
@@ -518,44 +842,47 @@ button.more {
   cursor: col-resize;
 }
 .th .grip:hover {
-  background: var(--accent);
+  background: var(--primary-color);
 }
 .trow {
   display: flex;
-  border-bottom: 1px solid var(--bg-3);
   cursor: default;
 }
 .trow:nth-child(even) {
-  background: var(--row-alt);
+  background: var(--emphasis-bg-less);
 }
 .trow:hover {
-  background: var(--bg-2);
+  background: var(--emphasis-bg);
 }
 .trow.selected {
-  background: var(--selected);
+  background: var(--row-selected-bg);
 }
 .td {
   flex: none;
-  padding: 0 8px;
-  line-height: 24px;
+  padding: 0 10px;
+  line-height: 26px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  border-right: 1px solid var(--bg-3);
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
 }
 .td.num {
   text-align: right;
 }
 .th.index,
 .td.index {
-  color: var(--fg-3);
+  color: var(--fg-color-least);
   text-align: right;
+}
+.td.index {
+  background: var(--emphasis-bg-less);
 }
 .td.absent {
   background: repeating-linear-gradient(
     -45deg,
     transparent 0 4px,
-    color-mix(in srgb, var(--border) 45%, transparent) 4px 5px
+    color-mix(in srgb, var(--border-color) 70%, transparent) 4px 5px
   );
 }
 
@@ -569,36 +896,37 @@ button.more {
   line-height: 20px;
   padding: 0 16px;
 }
+.sup-text .vlist-rows {
+  padding-top: 4px;
+}
 
-/* Syntax colors */
+/* Value colors, as zui colors them */
 
 .k-string {
-  color: var(--c-string);
+  color: var(--zed-string);
 }
 .k-number {
-  color: var(--c-number);
+  color: var(--zed-number);
 }
-.k-bool {
-  color: var(--c-bool);
+.k-bool,
+.k-net {
+  color: var(--zed-symbol);
 }
 .k-null {
-  color: var(--c-null);
+  color: var(--zed-null);
 }
 .k-time {
-  color: var(--c-time);
-}
-.k-net {
-  color: var(--c-net);
+  color: var(--zed-time);
 }
 .k-type,
 .k-enum {
-  color: var(--c-type);
+  color: var(--zed-symbol);
 }
 .k-error {
-  color: var(--c-error);
+  color: var(--zed-error);
 }
 .k-bytes {
-  color: var(--c-bytes);
+  color: var(--zed-bytes);
 }
 
 /* Detail panel */
@@ -607,8 +935,9 @@ button.more {
   width: min(45%, 560px);
   display: flex;
   flex-direction: column;
-  border-left: 1px solid var(--border);
-  background: var(--bg);
+  border-left: 1px solid var(--border-color);
+  background: var(--bg-color);
+  box-shadow: -2px 0 8px rgb(0 0 0 / 0.04);
 }
 .detail[hidden] {
   display: none;
@@ -616,97 +945,182 @@ button.more {
 .detail-bar {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px 4px 12px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-2);
-  font-weight: 600;
+  gap: 2px;
+  height: 40px;
+  padding: 0 6px 0 14px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--chrome-color);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--fg-color-less);
+}
+.detail-bar button {
+  font-size: 13px;
+  letter-spacing: normal;
+  text-transform: none;
 }
 .detail-body {
   flex: 1;
   display: flex;
   min-height: 0;
+  padding-top: 4px;
 }
 .detail-body > * {
   flex: 1;
 }
 
-/* Empty state */
+/* Empty state: zui's welcome page. */
 
 .empty {
   position: absolute;
   inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 22px;
   padding: 24px;
-  background: var(--bg);
+  overflow: auto;
+  background: var(--bg-color) url(welcome-background.svg) no-repeat center center;
+  background-size: auto 115%;
 }
 .empty[hidden] {
   display: none;
 }
-.dropzone {
-  max-width: 560px;
-  width: 100%;
-  padding: 40px 32px;
-  border: 2px dashed var(--border);
-  border-radius: 14px;
-  text-align: center;
-  color: var(--fg-2);
+.title {
+  margin: 0;
+  font-size: 56px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -1px;
 }
-.dropzone h1 {
-  margin: 0 0 8px;
-  font-size: 22px;
-  color: var(--fg);
-}
-.dropzone-actions {
+.card {
+  width: 420px;
+  max-width: 100%;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  margin: 20px 0;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px 28px 22px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-color);
+  box-shadow: var(--shadow-elevation-medium);
+  text-align: center;
 }
-.dropzone .private {
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px 20px 20px;
+  border: 2px dashed hsl(212 72% 59% / 0.8);
+  border-radius: var(--radius-m);
+  background-color: hsl(212 72% 59% / 0.04);
+  box-shadow: inset 0 0 9px rgb(0 0 0 / 0.08);
+  color: var(--fg-color-less);
+}
+.drop-icon {
+  width: 32px;
+  height: 32px;
+  color: var(--primary-color);
+  margin-bottom: 4px;
+}
+.dropzone h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--fg-color);
+}
+.dropzone p {
   margin: 0;
   font-size: 12px;
-  color: var(--fg-3);
+}
+.card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.card .hint {
+  margin: 0;
+  color: var(--fg-color-less);
+}
+.empty .private {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 420px;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-m);
+  background: color-mix(in srgb, var(--bg-color) 85%, transparent);
+  color: var(--fg-color-less);
+  font-size: 12px;
+  text-align: left;
+}
+.empty .private .icon {
+  margin-top: 1px;
+  color: var(--primary-color);
 }
 
 .drop-overlay {
   position: fixed;
-  inset: 0;
+  inset: 12px;
   z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
-  border: 3px dashed var(--accent);
+  border: 2px dashed var(--primary-color);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-color) 88%, transparent);
+  backdrop-filter: blur(2px);
   pointer-events: none;
 }
 .drop-overlay[hidden] {
   display: none;
 }
 .drop-overlay div {
-  padding: 16px 28px;
-  border-radius: 12px;
-  background: var(--bg);
-  color: var(--accent);
-  font-size: 18px;
-  font-weight: 600;
-  box-shadow: 0 8px 30px rgb(0 0 0 / 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: var(--primary-color);
+  font-size: 22px;
+  font-weight: 800;
+  animation: updown 1200ms ease-in-out infinite alternate;
+}
+.drop-overlay .icon {
+  width: 40px;
+  height: 40px;
+}
+@keyframes updown {
+  from {
+    transform: translateY(-4px);
+  }
+  to {
+    transform: translateY(4px);
+  }
 }
 
-/* Footer */
+/* Footer, like zui's */
 
 .footer {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 4px 16px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-2);
-  color: var(--fg-3);
+  height: 32px;
+  margin: 0 10px 10px;
+  padding: 0 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 0 0 var(--radius-l) var(--radius-l);
+  background: var(--bg-color);
+  box-shadow: 0 -1px 1px rgba(0, 0, 0, 0.05);
+  color: var(--fg-color-less);
   font-size: 12px;
+}
+#engine-status {
+  font-family: var(--mono-font);
 }
 .footer .error {
   color: var(--error-fg);
@@ -714,34 +1128,74 @@ button.more {
 .footer progress {
   width: 140px;
   height: 6px;
+  accent-color: var(--primary-color);
 }
 .footer progress[hidden] {
   display: none;
 }
 
+/* Dialog */
+
 .dialog {
   max-width: 480px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px 24px;
-  background: var(--bg);
-  color: var(--fg);
-  box-shadow: 0 12px 40px rgb(0 0 0 / 0.2);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-l);
+  padding: 22px 26px 20px;
+  background: var(--bg-color);
+  color: var(--fg-color);
+  box-shadow: var(--shadow-l);
+  line-height: 1.5;
+}
+.dialog[open] {
+  animation: pop 300ms var(--pop-easing);
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
 }
 .dialog::backdrop {
-  background: rgb(0 0 0 / 0.3);
+  background: rgb(0 0 0 / 0.35);
 }
 .dialog h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-top: 0;
-  font-size: 17px;
+  font-size: 18px;
+  font-weight: 800;
 }
-
-[hidden] {
-  display: none !important;
+.dialog h2 .icon {
+  width: 20px;
+  height: 20px;
+  color: var(--primary-color);
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+.dialog-actions button {
+  min-width: 90px;
 }
 
 /* Spacers standing in for the table columns that aren't rendered. */
 .th-spacer,
 .td-spacer {
   flex: none;
+}
+
+/* Narrow windows */
+@media (max-width: 720px) {
+  .privacy span,
+  .links span {
+    display: none;
+  }
+  .gutter {
+    display: none;
+  }
+  .editor {
+    padding-left: 8px;
+  }
 }

@@ -31,6 +31,7 @@ const types = {
   ".map": "application/json",
   ".svg": "image/svg+xml",
   ".wasm": "application/wasm",
+  ".woff2": "font/woff2",
   ".ts": "text/plain; charset=utf-8",
 }
 

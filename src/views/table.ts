@@ -9,7 +9,7 @@ import { CellLookup, buildColumns, type TableColumn } from "./columns.ts"
 import { arraySource, type ValueSource } from "./tree.ts"
 import { VirtualList } from "./virtual.ts"
 
-const ROW_HEIGHT = 24
+const ROW_HEIGHT = 26
 const INDEX_WIDTH = 56
 const MIN_WIDTH = 48
 const MAX_WIDTH = 420
@@ -106,14 +106,21 @@ export class TableView {
 
   private measureChar(): number {
     if (!this.charWidth) {
-      const ctx = document.createElement("canvas").getContext("2d")
-      const font = getComputedStyle(this.el).getPropertyValue("--mono-font") || "monospace"
-      if (ctx) {
-        ctx.font = `12px ${font}`
-        this.charWidth = ctx.measureText("0123456789").width / 10 || 7.2
-      } else {
-        this.charWidth = 7.2
-      }
+      // Measure in the page, not on a canvas, so the cell font's variation
+      // settings apply.
+      const probe = document.createElement("span")
+      probe.className = "td"
+      probe.style.cssText = "position:absolute;visibility:hidden;padding:0;border:0"
+      probe.textContent = "0123456789abcdefghij"
+      this.el.append(probe)
+      const w = probe.getBoundingClientRect().width / 20 || 7.8
+      probe.remove()
+      // Until the web font has loaded, this measures a fallback font, so
+      // measure again next time.
+      const style = getComputedStyle(this.el)
+      const first = style.getPropertyValue("--mono-font").trim().split(",")[0] || "monospace"
+      if (fontLoaded(`${style.fontSize} ${first}`)) this.charWidth = w
+      return w
     }
     return this.charWidth
   }
@@ -131,7 +138,7 @@ export class TableView {
         const cell = this.lookup.cell(v, k)
         if (cell) chars = Math.max(chars, Math.min(cellText(cell).length, 80))
       }
-      this.widths.set(col.id, Math.round(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, chars * cw + 18))))
+      this.widths.set(col.id, Math.round(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, chars * cw + 22))))
     })
     this.layout()
   }
@@ -247,5 +254,14 @@ export class TableView {
       row.append(td)
     }
     return row
+  }
+}
+
+// fontLoaded reports whether font is loaded or isn't a web font.
+function fontLoaded(font: string): boolean {
+  try {
+    return document.fonts.check(font)
+  } catch {
+    return true
   }
 }
