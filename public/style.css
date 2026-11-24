@@ -165,12 +165,14 @@ body {
 
 /*
  * Recursive's monospace, slightly casual and cursive, as zui sets it.  This
- * goes on every element because the font shorthand resets it.  It has no
- * effect on other fonts.
+ * goes on every element, and is !important, because the font shorthand
+ * resets it: without that, a rule like "#query { font: ... }" would turn the
+ * query box back to Recursive's proportional style.  It has no effect on
+ * other fonts.
  */
 *,
 ::placeholder {
-  font-variation-settings: "MONO" 1, "CASL" 0.3, "CRSV" 0.5;
+  font-variation-settings: "MONO" 1, "CASL" 0.3, "CRSV" 0.5 !important;
 }
 
 a {
