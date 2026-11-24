@@ -1,7 +1,8 @@
 /*
- * SuperLens styles, after the look of SuperDB Desktop (zui): its colors,
- * Recursive monospace font, segmented toolbar tabs, gradient buttons, and
- * value colors.
+ * SuperLens styles.  The layout and controls follow SuperDB Desktop (zui):
+ * its Recursive monospace font, segmented toolbar tabs, and gradient
+ * buttons.  The colors come from the SuperDB logo: its navy background, the
+ * blue at the top of its cylinder, and the teal at the bottom.
  */
 
 /* Recursive (SIL Open Font License), the monospace font zui uses. */
@@ -19,43 +20,48 @@
   --mono-font: "Recursive", ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
   --ui-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
-  /* zui's palette */
+  /* The logo's colors */
+  --navy: #243040;
+  --blue: #3484e7;
+  --teal: #18aaa0;
+  /* Teal for text: darker on a light background, to be readable. */
+  --teal-text: #0e7f78;
+  --logo-gradient: linear-gradient(to right, var(--blue), var(--teal));
+
   --red: #f13737;
   --green: #1adb91;
-  --orange: #ff7f00;
   --yellow: #ffc933;
-  --primary-color-lighter: hsl(212, 89%, 82%);
-  --primary-color-light: hsl(212, 72%, 69%);
-  --primary-color: hsl(212, 72%, 59%);
-  --primary-color-dark: hsl(212, 78%, 50%);
-  --primary-color-darker: hsl(212, 88%, 35%);
+  --primary-color-lighter: hsl(213, 89%, 82%);
+  --primary-color-light: hsl(213, 79%, 68%);
+  --primary-color: hsl(213, 79%, 55%);
+  --primary-color-dark: hsl(213, 79%, 47%);
+  --primary-color-darker: hsl(213, 80%, 36%);
 
-  --fg-color: #0f1e2e;
-  --fg-color-less: hsl(210, 4%, 40%);
-  --fg-color-least: hsl(210, 4%, 60%);
+  --fg-color: #1b2634;
+  --fg-color-less: hsl(214, 14%, 40%);
+  --fg-color-least: hsl(214, 12%, 60%);
   --bg-color: white;
-  --window-color: #f3f3f3;
-  --chrome-color: hsl(212, 10%, 97%);
-  --chrome-color-more: #e9eaeb;
+  --window-color: #edf0f4;
+  --chrome-color: hsl(214, 24%, 97%);
+  --chrome-color-more: #e3e7ed;
   --text-active: var(--primary-color-darker);
-  --wordmark-color: hsl(210, 6%, 45%);
 
   --emphasis-bg-less: rgba(0, 0, 0, 0.03);
   --emphasis-bg: rgba(0, 0, 0, 0.06);
   --emphasis-bg-more: rgba(0, 0, 0, 0.09);
   --emphasis-bg-most: rgba(0, 0, 0, 0.11);
 
-  --border-color: hsl(216, 10%, 87%);
-  --border-color-more: hsl(216, 10%, 70%);
+  --border-color: hsl(214, 18%, 87%);
+  --border-color-more: hsl(214, 14%, 70%);
 
   --selected-bg: white;
-  --row-selected-bg: hsl(212, 89%, 94%);
-  --pill-bg: hsl(212, 89%, 92%);
+  --row-selected-bg: hsl(213, 89%, 94%);
+  --pill-bg: hsl(213, 89%, 93%);
 
   --button-bg: linear-gradient(to bottom, hsl(0 0% 99%), hsl(0 0% 94%));
   --button-shine: white;
-  --submit-bg: linear-gradient(to bottom, #4c91e2, #3170de);
-  --submit-border: #206cc6;
+  --submit-bg: linear-gradient(to bottom, #4a93ec, #2b78de);
+  --submit-border: #2369c8;
 
   --hover-filter: brightness(95%);
   --active-filter: brightness(93%);
@@ -79,8 +85,8 @@
   --zed-time: hsl(275, 55%, 50%);
   --zed-symbol: hsl(212, 95%, 55%);
   --zed-string: var(--fg-color);
-  --zed-key: hsl(212, 20%, 40%);
-  --zed-number: #e65835;
+  --zed-key: hsl(214, 24%, 38%);
+  --zed-number: var(--teal-text);
   --zed-syntax: hsl(212, 17%, 55%);
   --zed-error: hsl(6, 97%, 40%);
   --zed-bytes: hsl(212, 10%, 45%);
@@ -96,36 +102,36 @@
     --fg-color: white;
     --fg-color-less: rgba(255, 255, 255, 0.7);
     --fg-color-least: rgba(255, 255, 255, 0.45);
-    --bg-color: hsl(44deg 8% 10%);
-    --window-color: #303231;
-    --chrome-color: hsl(0deg 0% 16%);
-    --chrome-color-more: hsl(0deg 0% 30%);
+    --teal-text: #3fd0c4;
+    --bg-color: #18212d;
+    --window-color: var(--navy);
+    --chrome-color: #1e2937;
+    --chrome-color-more: #3a4a60;
     --text-active: var(--primary-color-lighter);
-    --wordmark-color: hsl(210, 6%, 70%);
 
     --emphasis-bg-less: rgba(255, 255, 255, 0.05);
     --emphasis-bg: rgba(255, 255, 255, 0.1);
     --emphasis-bg-more: rgba(255, 255, 255, 0.15);
     --emphasis-bg-most: rgba(255, 255, 255, 0.25);
 
-    --border-color: #393939;
+    --border-color: #34435a;
     --border-color-more: rgba(255, 255, 255, 0.25);
 
     --selected-bg: rgba(255, 255, 255, 0.18);
-    --row-selected-bg: hsl(212, 45%, 26%);
-    --pill-bg: hsl(212, 45%, 26%);
+    --row-selected-bg: hsl(213, 50%, 30%);
+    --pill-bg: hsl(213, 50%, 28%);
 
-    --button-bg: linear-gradient(to top, hsl(0 0% 24%), hsl(0 0% 18%));
+    --button-bg: linear-gradient(to top, hsl(214 26% 24%), hsl(214 26% 28%));
     --button-shine: transparent;
 
     --hover-filter: brightness(125%);
     --active-filter: brightness(135%);
 
-    --shadow-color: 0deg 0% 0%;
+    --shadow-color: 214deg 40% 6%;
 
     --zed-key: hsl(212, 25%, 72%);
     --zed-syntax: hsl(212, 15%, 60%);
-    --zed-number: #ff8a65;
+    --zed-number: var(--teal-text);
     --zed-time: hsl(275, 70%, 75%);
     --zed-symbol: hsl(212, 90%, 70%);
     --zed-error: #ff7b72;
@@ -348,37 +354,57 @@ select:hover {
   color: var(--fg-color-less);
 }
 
-/* Top bar */
+/* Top bar: the logo on its own navy, with its blue-to-teal gradient below. */
 
 .topbar {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 14px;
-  height: 46px;
-  padding: 0 10px 0 16px;
-  background: var(--window-color);
+  flex: none;
+  height: 48px;
+  margin-bottom: 10px;
+  padding: 0 10px 0 14px;
+  background: var(--navy);
+  color: white;
+}
+.topbar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--logo-gradient);
 }
 .brand {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--fg-color);
+  color: white;
 }
 .brand:hover {
   text-decoration: none;
 }
+.brand img {
+  width: 30px;
+  height: 30px;
+}
+/* The name, colored like the logo's: "Super" plain and "Lens" teal. */
 .wordmark {
-  font-size: 17px;
-  font-weight: 900;
+  font-size: 18px;
+  font-weight: 800;
   letter-spacing: -0.2px;
+  color: #2cc0b5;
 }
-.wordmark,
+.wordmark span {
+  color: white;
+}
 .title {
-  color: var(--wordmark-color);
+  color: var(--teal);
 }
-.wordmark span,
 .title span {
-  color: var(--orange);
+  color: var(--fg-color);
 }
 .privacy {
   height: 22px;
@@ -386,13 +412,17 @@ select:hover {
   gap: 5px;
   border: none;
   border-radius: var(--radius-m);
-  background: var(--pill-bg);
+  background: rgb(44 192 181 / 0.16);
   box-shadow: none;
-  color: var(--text-active);
+  color: #8fe6de;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.1px;
   text-transform: uppercase;
+}
+.privacy:hover {
+  background: rgb(44 192 181 / 0.26);
+  filter: none;
 }
 .privacy .icon {
   width: 13px;
@@ -405,6 +435,16 @@ select:hover {
 .links .icon {
   width: 16px;
   height: 16px;
+}
+.links a.ghost {
+  color: rgb(255 255 255 / 0.75);
+}
+.links a.ghost:hover {
+  background: rgb(255 255 255 / 0.12);
+  color: white;
+}
+.topbar :focus-visible {
+  outline-color: #8fe6de;
 }
 
 /* Query controls: a card, like zui's editor pane. */
@@ -506,7 +546,7 @@ select:hover {
 }
 .editor:focus-within {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px hsl(212 72% 59% / 0.18);
+  box-shadow: 0 0 0 3px hsl(213 79% 55% / 0.18);
 }
 .gutter {
   flex: none;
@@ -991,10 +1031,21 @@ button.more:hover {
 }
 .title {
   margin: 0;
-  font-size: 56px;
-  font-weight: 900;
+  font-size: 52px;
+  font-weight: 800;
   line-height: 1;
   letter-spacing: -1px;
+}
+/* The logo on a tile of its navy. */
+.title img {
+  width: 76px;
+  height: 76px;
+  padding: 9px;
+  border-radius: 18px;
+  margin-right: 16px;
+  vertical-align: middle;
+  background: var(--navy);
+  box-shadow: var(--shadow-elevation-medium);
 }
 .card {
   width: 420px;
@@ -1015,9 +1066,9 @@ button.more:hover {
   align-items: center;
   gap: 6px;
   padding: 24px 20px 20px;
-  border: 2px dashed hsl(212 72% 59% / 0.8);
+  border: 2px dashed hsl(213 79% 55% / 0.8);
   border-radius: var(--radius-m);
-  background-color: hsl(212 72% 59% / 0.04);
+  background-color: hsl(213 79% 55% / 0.04);
   box-shadow: inset 0 0 9px rgb(0 0 0 / 0.08);
   color: var(--fg-color-less);
 }
@@ -1128,7 +1179,7 @@ button.more:hover {
 .footer progress {
   width: 140px;
   height: 6px;
-  accent-color: var(--primary-color);
+  accent-color: var(--teal);
 }
 .footer progress[hidden] {
   display: none;
