@@ -17,41 +17,66 @@
       name="description"
       content="Explore JSON, CSV, Parquet, and more with SuperSQL queries. SuperLens runs SuperDB entirely in your browser: your files are never uploaded."
     />
-    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="favicon.png" type="image/png" />
+    <link rel="preload" href="fonts/recursive.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="style.css" />
     <script type="module" src="app/main.js"></script>
   </head>
   <body>
+    <!-- Icons from MingCute (Apache 2.0), as used in SuperDB Desktop (zui). -->
+    <svg class="sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <symbol id="i-run" viewBox="0 0 24 24"><g fill-rule="evenodd"> <path d="M5.669 4.76a1.469 1.469 0 0 1 2.04-1.177c1.062.454 3.442 1.533 6.462 3.276 3.021 1.744 5.146 3.267 6.069 3.958.788.591.79 1.763.001 2.356-.914.687-3.013 2.19-6.07 3.956-3.06 1.766-5.412 2.832-6.464 3.28-.906.387-1.92-.2-2.038-1.177-.138-1.142-.396-3.735-.396-7.237 0-3.5.257-6.092.396-7.235Z" /> </g></symbol>
+        <symbol id="i-stop" viewBox="0 0 24 24"><g fill-rule="evenodd"> <path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6Z" /> </g></symbol>
+        <symbol id="i-open" viewBox="0 0 24 24"><g fill-rule="nonzero"> <path d="M9.52 3a2 2 0 0 1 1.442.614l.12.137L12.48 5.5H19a2 2 0 0 1 1.995 1.85L21 7.5v1.53a2.001 2.001 0 0 1 1.61 2.398l-.038.147-2.4 8a2 2 0 0 1-1.752 1.418l-.164.007H4a2 2 0 0 1-1.995-1.85L2 19V5a2 2 0 0 1 1.85-1.995L4 3h5.52Zm11.136 8H6.744l-2.4 8h13.912l2.4-8ZM9.519 5H4v8.187l.828-2.762A2 2 0 0 1 6.744 9H19V7.5h-6.52a2 2 0 0 1-1.561-.75L9.519 5Z" /> </g></symbol>
+        <symbol id="i-file" viewBox="0 0 24 24"><g fill-rule="nonzero"> <path d="M13.586 2a2 2 0 0 1 1.284.467l.13.119L19.414 7a2 2 0 0 1 .578 1.238l.008.176V20a2 2 0 0 1-1.85 1.995L18 22H6a2 2 0 0 1-1.995-1.85L4 20V4a2 2 0 0 1 1.85-1.995L6 2h7.586ZM12 4H6v16h12V10h-4.5A1.5 1.5 0 0 1 12 8.5V4Zm2 .414V8h3.586L14 4.414Z" /> </g></symbol>
+        <symbol id="i-inspector" viewBox="0 0 24 24"><g fill-rule="nonzero"> <path d="M8 3a1 1 0 0 1 .117 1.993L8 5H7a1 1 0 0 0-.993.883L6 6v4c0 .768-.289 1.47-.764 2 .428.478.704 1.093.755 1.772L6 14v4a1 1 0 0 0 .883.993L7 19h1a1 1 0 0 1 .117 1.993L8 21H7a3 3 0 0 1-2.995-2.824L4 18v-4a1 1 0 0 0-.883-.993L3 13a1 1 0 0 1-.117-1.993L3 11a1 1 0 0 0 .993-.883L4 10V6a3 3 0 0 1 2.824-2.995L7 3h1Zm9 0a3 3 0 0 1 2.995 2.824L20 6v4a1 1 0 0 0 .883.993L21 11a1 1 0 0 1 .117 1.993L21 13a1 1 0 0 0-.993.883L20 14v4a3 3 0 0 1-2.824 2.995L17 21h-1a1 1 0 0 1-.117-1.993L16 19h1a1 1 0 0 0 .993-.883L18 18v-4c0-.768.289-1.47.764-2a2.988 2.988 0 0 1-.755-1.772L18 10V6a1 1 0 0 0-.883-.993L17 5h-1a1 1 0 0 1-.117-1.993L16 3h1Z" /> </g></symbol>
+        <symbol id="i-table" viewBox="0 0 24 24"><g fill-rule="nonzero"> <path d="M19 3a2 2 0 0 1 1.995 1.85L21 5v14a2 2 0 0 1-1.85 1.995L19 21H5a2 2 0 0 1-1.995-1.85L3 19V5a2 2 0 0 1 1.85-1.995L5 3h14Zm-8 12H5v4h6v-4Zm8 0h-6v4h6v-4Zm0-5h-6v3h6v-3Zm-8 0H5v3h6v-3Zm8-5h-6v3h6V5Zm-8 0H5v3h6V5Z" /> </g></symbol>
+        <symbol id="i-text" viewBox="0 0 24 24"><g fill-rule="nonzero"> <path d="M14.486 3.143a1 1 0 0 1 .692 1.233l-4.43 15.788a1 1 0 0 1-1.926-.54l4.43-15.788a1 1 0 0 1 1.234-.693ZM7.207 7.05a1 1 0 0 1 0 1.414L3.672 12l3.535 3.535a1 1 0 1 1-1.414 1.415L1.55 12.707a1 1 0 0 1 0-1.414L5.793 7.05a1 1 0 0 1 1.414 0Zm9.586 1.414a1 1 0 1 1 1.414-1.414l4.243 4.243a1 1 0 0 1 0 1.414l-4.243 4.242a1 1 0 0 1-1.414-1.414L20.328 12l-3.535-3.536Z" /> </g></symbol>
+        <symbol id="i-expand" viewBox="0 0 24 24"><g fill-rule="nonzero"> <path d="M4 11a1 1 0 1 0 0 2h1a1 1 0 0 0 0-2H4Zm5 0a1 1 0 1 0 0 2h1a1 1 0 0 0 0-2H9Zm4 1a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2h-1a1 1 0 0 1-1-1Zm6-1a1 1 0 1 0 0 2h1a1 1 0 0 0 0-2h-1Zm-8 7.414-1.121-1.121a1 1 0 1 0-1.414 1.414l2.828 2.829a1 1 0 0 0 1.414 0l2.829-2.829a1 1 0 0 0-1.415-1.414L13 18.414V15a1 1 0 1 0-2 0v3.414ZM12 10a1 1 0 0 1-1-1V5.586L9.879 6.707a1 1 0 0 1-1.414-1.414l2.828-2.828a1 1 0 0 1 1.414 0l2.829 2.828a1 1 0 0 1-1.415 1.414L13 5.586V9a1 1 0 0 1-1 1Z" /> </g></symbol>
+        <symbol id="i-collapse" viewBox="0 0 24 24"><g fill-rule="nonzero"> <path d="M4 11a1 1 0 0 0 0 2h1a1 1 0 1 0 0-2H4Zm5 0a1 1 0 0 0 0 2h1a1 1 0 1 0 0-2H9Zm4 1a1 1 0 0 1 1-1h1a1 1 0 0 1 0 2h-1a1 1 0 0 1-1-1Zm6-1a1 1 0 0 0 0 2h1a1 1 0 1 0 0-2h-1Zm-8-4.586L9.879 5.293a1 1 0 0 0-1.414 1.414l2.828 2.829a1 1 0 0 0 1.414 0l2.829-2.829a1 1 0 0 0-1.415-1.414L13 6.414V3a1 1 0 1 0-2 0v3.414ZM12 22a1 1 0 0 1-1-1v-3.414l-1.121 1.121a1 1 0 0 1-1.414-1.414l2.828-2.829a1 1 0 0 1 1.414 0l2.829 2.829a1 1 0 0 1-1.415 1.414L13 17.586V21a1 1 0 0 1-1 1Z" /> </g></symbol>
+        <symbol id="i-copy" viewBox="0 0 24 24"><g fill-rule="evenodd"> <path d="M9 2a2 2 0 0 0-2 2v2h2V4h11v11h-2v2h2a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H9ZM4 7a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2H4Zm0 2h11v11H4V9Z" /> </g></symbol>
+        <symbol id="i-download" viewBox="0 0 24 24"><g fill-rule="nonzero"> <path d="M20 15a1 1 0 0 1 1 1v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4a1 1 0 1 1 2 0v4h14v-4a1 1 0 0 1 1-1ZM12 2a1 1 0 0 1 1 1v10.243l2.536-2.536a1 1 0 1 1 1.414 1.414l-4.066 4.066a1.25 1.25 0 0 1-1.768 0L7.05 12.121a1 1 0 1 1 1.414-1.414L11 13.243V3a1 1 0 0 1 1-1Z" /> </g></symbol>
+        <symbol id="i-close" viewBox="0 0 24 24"><g fill-rule="evenodd"> <path d="m12 13.414 5.657 5.657a1 1 0 0 0 1.414-1.414L13.414 12l5.657-5.657a1 1 0 0 0-1.414-1.414L12 10.586 6.343 4.929A1 1 0 0 0 4.93 6.343L10.586 12l-5.657 5.657a1 1 0 1 0 1.414 1.414L12 13.414Z" /> </g></symbol>
+        <symbol id="i-lock" viewBox="0 0 24 24"><g fill-rule="nonzero"> <path d="M12 2a6 6 0 0 1 5.996 5.775L18 8h1a2 2 0 0 1 1.995 1.85L21 10v10a2 2 0 0 1-1.85 1.995L19 22H5a2 2 0 0 1-1.995-1.85L3 20V10a2 2 0 0 1 1.85-1.995L5 8h1a6 6 0 0 1 6-6Zm7 8H5v10h14V10Zm-7 2a2 2 0 0 1 1.134 3.647l-.134.085V17a1 1 0 0 1-1.993.117L11 17v-1.268A2 2 0 0 1 12 12Zm0-8a4 4 0 0 0-4 4h8a4 4 0 0 0-4-4Z" /> </g></symbol>
+        <symbol id="i-docs" viewBox="0 0 24 24"><g fill-rule="nonzero"> <path d="M18 2a2 2 0 0 1 2 2v12.99c0 .168-.038.322-.113.472l-.545 1.09a1 1 0 0 0 0 .895l.543 1.088A1 1 0 0 1 19 22H7a3 3 0 0 1-3-3V5a3 3 0 0 1 3-3h11Zm-.592 16H7a1 1 0 0 0-.117 1.993L7 20h10.408a3.001 3.001 0 0 1-.068-1.782l.068-.218ZM18 4H7a1 1 0 0 0-.993.883L6 5v11.17c.25-.088.516-.144.791-.163L7 16h11V4Zm-4 3a1 1 0 0 1 .117 1.993L14 9h-4a1 1 0 0 1-.117-1.993L10 7h4Z" /> </g></symbol>
+        <symbol id="i-github" viewBox="0 0 24 24"><g fill-rule="nonzero"> <path d="M6.315 6.176c-.25-.638-.24-1.367-.129-2.034a6.77 6.77 0 0 1 2.12 1.07c.28.214.647.283.989.18A9.343 9.343 0 0 1 12 5c.961 0 1.874.14 2.703.391.342.104.709.034.988-.18a6.77 6.77 0 0 1 2.119-1.07c.111.667.12 1.396-.128 2.033-.15.384-.075.826.208 1.14C18.614 8.117 19 9.04 19 10c0 2.114-1.97 4.187-5.134 4.818-.792.158-1.101 1.155-.495 1.726.389.366.629.882.629 1.456v3a1 1 0 0 0 2 0v-3c0-.57-.12-1.112-.334-1.603C18.683 15.35 21 12.993 21 10c0-1.347-.484-2.585-1.287-3.622.21-.82.191-1.646.111-2.28-.071-.568-.17-1.312-.57-1.756-.595-.659-1.58-.271-2.28-.032a9.081 9.081 0 0 0-2.125 1.045A11.432 11.432 0 0 0 12 3c-.994 0-1.953.125-2.851.356a9.08 9.08 0 0 0-2.125-1.045c-.7-.24-1.686-.628-2.281.031-.408.452-.493 1.137-.566 1.719l-.005.038c-.08.635-.098 1.462.112 2.283C3.484 7.418 3 8.654 3 10c0 2.992 2.317 5.35 5.334 6.397A3.986 3.986 0 0 0 8 17.98l-.168.034c-.717.099-1.176.01-1.488-.122-.76-.322-1.152-1.133-1.63-1.753-.298-.385-.732-.866-1.398-1.088a1 1 0 0 0-.632 1.898c.558.186.944 1.142 1.298 1.566.373.448.869.916 1.58 1.218.682.29 1.483.393 2.438.276V21a1 1 0 0 0 2 0v-3c0-.574.24-1.09.629-1.456.607-.572.297-1.568-.495-1.726C6.969 14.187 5 12.114 5 10c0-.958.385-1.881 1.108-2.684.283-.314.357-.756.207-1.14Z" /> </g></symbol>
+        <symbol id="i-supersql" viewBox="0 0 24 24"><g fill-rule="nonzero"> <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14Zm0 2H5v14h14V5Zm-3 9a1 1 0 0 1 .117 1.993L16 16h-2a1 1 0 0 1-.117-1.993L14 14h2ZM9.05 8.465l2.829 2.828a1 1 0 0 1 0 1.414L9.05 15.536a1 1 0 0 1-1.414-1.415l2.121-2.12-2.12-2.122A1 1 0 1 1 9.05 8.465Z" /> </g></symbol>
+        <symbol id="i-upload" viewBox="0 0 24 24"><g fill-rule="nonzero"> <path d="M13.586 2a2 2 0 0 1 1.284.467l.13.119L19.414 7a2 2 0 0 1 .578 1.238l.008.176V20a2 2 0 0 1-1.85 1.995L18 22H6a2 2 0 0 1-1.995-1.85L4 20V4a2 2 0 0 1 1.85-1.995L6 2h7.586ZM12 4H6v16h12V10h-4.5A1.5 1.5 0 0 1 12 8.5V4Zm-.707 7.173a1 1 0 0 1 1.32-.083l.094.083 2.121 2.121a1 1 0 0 1-1.32 1.498l-.094-.084-.414-.414V17a1 1 0 0 1-1.993.117L11 17v-2.706l-.414.414a1 1 0 0 1-1.498-1.32l.084-.094 2.12-2.121ZM14 4.414V8h3.586L14 4.414Z" /> </g></symbol>
+        <symbol id="i-clear" viewBox="0 0 24 24"><g fill-rule="nonzero"> <path d="M14.28 2a2 2 0 0 1 1.897 1.368L16.72 5H20a1 1 0 1 1 0 2l-.003.071-.867 12.143A3 3 0 0 1 16.138 22H7.862a3 3 0 0 1-2.992-2.786L4.003 7.07A1.01 1.01 0 0 1 4 7a1 1 0 0 1 0-2h3.28l.543-1.632A2 2 0 0 1 9.721 2h4.558Zm3.717 5H6.003l.862 12.071a1 1 0 0 0 .997.929h8.276a1 1 0 0 0 .997-.929L17.997 7ZM10 10a1 1 0 0 1 .993.883L11 11v5a1 1 0 0 1-1.993.117L9 16v-5a1 1 0 0 1 1-1Zm4 0a1 1 0 0 1 1 1v5a1 1 0 1 1-2 0v-5a1 1 0 0 1 1-1Zm.28-6H9.72l-.333 1h5.226l-.334-1Z" /> </g></symbol>
+        <symbol id="i-superfuse" viewBox="0 0 24 24"><g fill-rule="evenodd"> <path d="M6 3a3 3 0 0 1 1 5.83V9a2 2 0 0 0 2 2h6a4 4 0 0 1 4 4v.17a3.001 3.001 0 1 1-2 0V15a2 2 0 0 0-2-2H9a3.982 3.982 0 0 1-2-.535v2.706a3.001 3.001 0 1 1-2 0V8.829A3.001 3.001 0 0 1 6 3Zm12 14a1 1 0 1 0 0 2 1 1 0 0 0 0-2ZM6 17a1 1 0 1 0 0 2 1 1 0 0 0 0-2ZM6 5a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z" /> </g></symbol>
+        <symbol id="i-sample" viewBox="0 0 24 24"><g fill-rule="evenodd"> <path d="M5.827 13.004a.19.19 0 0 1 .346 0l.17.371a8.693 8.693 0 0 0 3.3 3.638l.265.155a.181.181 0 0 1 0 .316l-.265.155a8.693 8.693 0 0 0-3.3 3.638l-.17.372a.19.19 0 0 1-.346 0l-.17-.372a8.693 8.693 0 0 0-3.3-3.638l-.265-.155a.181.181 0 0 1 0-.316l.265-.155a8.693 8.693 0 0 0 3.47-4.01Zm.17 3.486-.175.206c-.125.14-.253.277-.385.41l-.2.198-.027.024.227.223.195.203.19.208.175.205.175-.205c.125-.14.253-.278.385-.411l.227-.223-.027-.024c-.135-.13-.267-.263-.395-.4l-.19-.208-.175-.206Zm8.476-13.76a.331.331 0 0 1 .605 0l.15.336.148.314.195.39.226.42.112.196a15.214 15.214 0 0 0 3.895 4.437l.427.317a15.192 15.192 0 0 0 1.383.878.317.317 0 0 1 0 .553 15.258 15.258 0 0 0-1.082.67l-.36.251a15.213 15.213 0 0 0-4.263 4.71l-.131.232c-.141.254-.276.513-.402.775l-.147.314-.15.336a.331.331 0 0 1-.606 0l-.15-.336-.148-.314-.196-.39-.225-.42-.113-.196a15.214 15.214 0 0 0-3.894-4.437l-.428-.316a15.153 15.153 0 0 0-1.382-.88.317.317 0 0 1 0-.552 15.298 15.298 0 0 0 1.082-.669l.36-.252a15.215 15.215 0 0 0 4.262-4.71l.132-.232c.141-.254.275-.512.402-.775l.147-.314.15-.336Zm.302 3.615a17.215 17.215 0 0 1-3.663 3.95 17.214 17.214 0 0 1 3.663 3.95 17.212 17.212 0 0 1 3.663-3.95 17.213 17.213 0 0 1-3.663-3.95Z" /> </g></symbol>
+        <symbol id="i-chevron" viewBox="0 0 24 24"><g fill-rule="evenodd"> <path d="M8.465 10.293a1 1 0 0 1 1.414 0L12 12.414l2.121-2.121a1 1 0 0 1 1.415 1.414l-2.829 2.829a1 1 0 0 1-1.414 0l-2.828-2.829a1 1 0 0 1 0-1.414Z" /> </g></symbol>
+      </defs>
+    </svg>
+
     <header class="topbar">
       <a class="brand" href="./" title="SuperLens">
-        <img src="favicon.svg" alt="" width="22" height="22" />
-        <span>SuperLens</span>
+        <img src="logo.png" alt="" width="30" height="30" />
+        <span class="wordmark"><span>Super</span>Lens</span>
       </a>
       <button class="privacy" id="privacy-button" type="button" aria-haspopup="dialog">
-        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-          <path
-            fill="currentColor"
-            d="M8 1a3.5 3.5 0 0 0-3.5 3.5V6H4a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-.5V4.5A3.5 3.5 0 0 0 8 1Zm2 5H6V4.5a2 2 0 1 1 4 0V6Z"
-          />
-        </svg>
-        Runs in your browser — your data is never uploaded
+        <svg class="icon" aria-hidden="true"><use href="#i-lock" /></svg>
+        <span>Runs in your browser — your data is never uploaded</span>
       </button>
+      <span class="spacer"></span>
       <nav class="links">
-        <a href="https://superdb.org/" target="_blank" rel="noopener">Docs</a>
-        <a href="https://superdb.org/super-sql/intro" target="_blank" rel="noopener">SuperSQL</a>
-        <a href="https://github.com/superdb/superlens" target="_blank" rel="noopener">GitHub</a>
+        <a class="ghost" href="https://superdb.org/" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-docs" /></svg><span>Docs</span></a>
+        <a class="ghost" href="https://superdb.org/super-sql/intro" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-supersql" /></svg><span>SuperSQL</span></a>
+        <a class="ghost" href="https://github.com/superdb/superlens" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-github" /></svg><span>GitHub</span></a>
       </nav>
     </header>
 
     <section class="controls">
       <div class="files-row">
-        <button id="open-button" class="primary" type="button">Open files…</button>
-        <input id="file-input" type="file" multiple hidden />
+        <span class="pill-label">From</span>
         <ul id="file-chips" class="chips" aria-label="Loaded files"></ul>
-        <button id="clear-button" class="link" type="button" hidden>Clear files</button>
+        <button id="open-button" class="ghost" type="button"><svg class="icon" aria-hidden="true"><use href="#i-open" /></svg><span>Open files…</span></button>
+        <input id="file-input" type="file" multiple hidden />
+        <button id="clear-button" class="ghost" type="button" hidden><svg class="icon" aria-hidden="true"><use href="#i-clear" /></svg><span>Clear files</span></button>
         <span class="spacer"></span>
         <label class="field">
-          Format
+          <span>Format</span>
           <select id="format-select" title="How to read the files (auto-detected by default)">
             <option value="auto">auto-detect</option>
             <option value="arrows">Arrow IPC stream</option>
@@ -66,50 +91,54 @@
           </select>
         </label>
       </div>
-      <div class="query-row">
+      <div class="editor">
+        <span class="gutter" aria-hidden="true">1</span>
         <textarea
           id="query"
           rows="1"
           spellcheck="false"
           autocomplete="off"
           aria-label="Query"
-          placeholder="SuperSQL query, e.g. count() by type — leave empty to see everything (Enter to run)"
+          placeholder="Compose a SuperSQL query, e.g. count() by type — leave empty to see everything"
         ></textarea>
-        <button id="run-button" class="primary" type="button">Run</button>
-        <button id="stop-button" type="button" hidden>Stop</button>
-        <button
-          id="superfuse-button"
-          type="button"
-          title="Show the fused type of the results: adds “aggregate superfuse(this)” to the query and runs it"
-        >
-          Superfuse
-        </button>
+        <div class="editor-actions">
+          <button
+            id="superfuse-button"
+            class="ghost"
+            type="button"
+            title="Show the fused type of the results: adds “aggregate superfuse(this)” to the query and runs it"
+          >
+            <svg class="icon" aria-hidden="true"><use href="#i-superfuse" /></svg><span>Superfuse</span>
+          </button>
+          <button id="stop-button" class="button" type="button" hidden><svg class="icon" aria-hidden="true"><use href="#i-stop" /></svg><span>Stop</span></button>
+          <button id="run-button" class="submit" type="button" title="Run the query (Enter)"><svg class="icon" aria-hidden="true"><use href="#i-run" /></svg><span>Run</span></button>
+        </div>
       </div>
     </section>
 
     <main class="results">
       <div class="results-bar">
         <div class="tabs" role="tablist">
-          <button role="tab" data-view="table" type="button">Table</button>
-          <button role="tab" data-view="inspector" type="button">Inspector</button>
-          <button role="tab" data-view="text" type="button">SUP</button>
+          <button role="tab" data-view="table" type="button"><svg class="icon" aria-hidden="true"><use href="#i-table" /></svg><span>Table</span></button>
+          <button role="tab" data-view="inspector" type="button"><svg class="icon" aria-hidden="true"><use href="#i-inspector" /></svg><span>Inspector</span></button>
+          <button role="tab" data-view="text" type="button"><svg class="icon" aria-hidden="true"><use href="#i-text" /></svg><span>SUP</span></button>
         </div>
         <div id="status" class="status" aria-live="polite"></div>
         <span class="spacer"></span>
         <div class="actions">
-          <button id="expand-button" class="link" type="button" data-for="inspector">Expand all</button>
-          <button id="collapse-button" class="link" type="button" data-for="inspector">Collapse all</button>
+          <button id="expand-button" class="ghost" type="button" data-for="inspector"><svg class="icon" aria-hidden="true"><use href="#i-expand" /></svg><span>Expand all</span></button>
+          <button id="collapse-button" class="ghost" type="button" data-for="inspector"><svg class="icon" aria-hidden="true"><use href="#i-collapse" /></svg><span>Collapse all</span></button>
           <span id="export-controls" class="export">
-            <button id="copy-button" class="link" type="button">Copy</button>
-            <button id="download-button" class="link" type="button">Download</button>
+            <button id="copy-button" class="ghost" type="button"><svg class="icon" aria-hidden="true"><use href="#i-copy" /></svg><span class="label">Copy</span></button>
+            <button id="download-button" class="ghost" type="button"><svg class="icon" aria-hidden="true"><use href="#i-download" /></svg><span class="label">Download</span></button>
             <label class="field">
-              as
+              <span>as</span>
               <!-- Filled in from EXPORT_FORMATS in src/export.ts. -->
               <select id="export-select" title="The format for Copy and Download"></select>
             </label>
           </span>
           <label class="field">
-            Show
+            <span>Show</span>
             <select id="limit-select" title="Most values to show">
               <option value="1000">1,000</option>
               <option value="10000">10,000</option>
@@ -127,30 +156,36 @@
           <div class="detail-bar">
             <span id="detail-title"></span>
             <span class="spacer"></span>
-            <button id="detail-copy-sup" class="link" type="button">Copy SUP</button>
-            <button id="detail-copy-json" class="link" type="button">Copy JSON</button>
-            <button id="detail-close" class="icon" type="button" aria-label="Close">×</button>
+            <button id="detail-copy-sup" class="ghost" type="button"><svg class="icon" aria-hidden="true"><use href="#i-copy" /></svg><span class="label">Copy SUP</span></button>
+            <button id="detail-copy-json" class="ghost" type="button"><svg class="icon" aria-hidden="true"><use href="#i-copy" /></svg><span class="label">Copy JSON</span></button>
+            <button id="detail-close" class="icon-button" type="button" aria-label="Close" title="Close"><svg class="icon" aria-hidden="true"><use href="#i-close" /></svg></button>
           </div>
           <div id="detail-body" class="detail-body"></div>
         </aside>
         <div id="empty" class="empty">
-          <div class="dropzone" id="dropzone">
-            <h1>Drop files here</h1>
-            <p>
-              JSON, NDJSON, CSV, TSV, Parquet, SUP, BSUP, Arrow, or Zeek.
-              <br />
+          <h1 class="title"><img src="logo.png" alt="" width="76" height="76" /><span>Super</span>Lens</h1>
+          <div class="card">
+            <div class="dropzone" id="dropzone">
+              <svg class="icon drop-icon" aria-hidden="true"><use href="#i-upload" /></svg>
+              <h2>Drop files here</h2>
+              <p>JSON, NDJSON, CSV, TSV, Parquet, SUP, BSUP, Arrow, or Zeek.</p>
+            </div>
+            <div class="card-actions">
+              <button id="empty-open-button" class="submit wide" type="button"><svg class="icon" aria-hidden="true"><use href="#i-open" /></svg><span>Choose files…</span></button>
+              <button id="sample-button" class="button wide" type="button"><svg class="icon" aria-hidden="true"><use href="#i-sample" /></svg><span>Try sample data</span></button>
+            </div>
+            <p class="hint">
               Then explore them with <a href="https://superdb.org/super-sql/intro" target="_blank" rel="noopener">SuperSQL</a>.
             </p>
-            <div class="dropzone-actions">
-              <button id="empty-open-button" class="primary" type="button">Choose files…</button>
-              <button id="sample-button" class="link" type="button">or try sample data</button>
-            </div>
-            <p class="private">
+          </div>
+          <p class="private">
+            <svg class="icon" aria-hidden="true"><use href="#i-lock" /></svg>
+            <span>
               Your files stay on your computer. SuperLens runs the
               <a href="https://superdb.org/" target="_blank" rel="noopener">SuperDB</a> query engine inside this
               browser tab, so nothing you open is uploaded to any server.
-            </p>
-          </div>
+            </span>
+          </p>
         </div>
       </div>
     </main>
@@ -163,7 +198,7 @@
     </footer>
 
     <dialog id="privacy-dialog" class="dialog">
-      <h2>Your data stays in your browser</h2>
+      <h2><svg class="icon" aria-hidden="true"><use href="#i-lock" /></svg> Your data stays in your browser</h2>
       <p>
         SuperLens runs SuperDB, compiled to WebAssembly, inside this browser tab. Files you open or drop are read
         directly by the browser and queried in memory. They are never uploaded, and SuperLens has no server
@@ -174,9 +209,11 @@
         security policy blocks connections to any other site.
       </p>
       <p>Closing or reloading the tab discards everything.</p>
-      <button id="privacy-close" class="primary" type="button">Got it</button>
+      <div class="dialog-actions">
+        <button id="privacy-close" class="submit" type="button">Got it</button>
+      </div>
     </dialog>
 
-    <div id="drop-overlay" class="drop-overlay" hidden><div>Drop to open</div></div>
+    <div id="drop-overlay" class="drop-overlay" hidden><div><svg class="icon" aria-hidden="true"><use href="#i-upload" /></svg><span>Drop to open</span></div></div>
   </body>
 </html>

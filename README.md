@@ -159,6 +159,16 @@ HTML, JavaScript, CSS, and the query engine (`super.wasm`).
   * The inspector only builds the rows of the values that are expanded, and
     rebuilds them from the results if they've been dropped.
 
+* **The look.** The layout and controls follow SuperDB Desktop (zui):
+  segmented view tabs, gradient buttons, light and dark themes, and the
+  [Recursive](https://www.recursive.design/) monospace font zui uses
+  (`public/fonts/`, SIL Open Font License). The colors come from the SuperDB
+  logo (`public/logo.png`, `public/favicon.png`): its navy, blue, and teal
+  are the `--navy`, `--blue`, and `--teal` variables at the top of
+  `public/style.css`. The icons are [MingCute](https://www.mingcute.com/)
+  icons (Apache 2.0), also from zui, inlined in `index.html`. The empty
+  page's background is zui's welcome-page art, recolored.
+
 There's no bundler or framework. The build compiles TypeScript to ES modules
 that browsers load directly, and the site has no runtime dependencies.
 
@@ -196,7 +206,7 @@ npm run serve        # serves dist/ at http://localhost:8080/
 2. Compiles super-ts from `SUPER_TS` into `dist/vendor/super-ts/`.
 3. Compiles the app from `src/` into `dist/app/`, pointing its super-ts
    imports at the vendored copy.
-4. Copies `public/` (the HTML, CSS, icon, sample data, and `_headers`) into
+4. Copies `public/` (the HTML, CSS, icon, font, sample data, and `_headers`) into
    `dist/`.
 
 Other scripts:
@@ -278,7 +288,7 @@ src/views/text.ts         the SUP view
 src/views/virtual.ts      the virtualized list behind all three views
 src/views/cells.ts        value text, colors, and JSON
 src/views/choose.ts       picks the default view for a result
-public/                   index.html, style.css, favicon, sample data, _headers
+public/                   index.html, style.css, logo, favicon, font, background, sample data, _headers
 scripts/                  build, dev server, and wasm build scripts
 test/                     unit tests (node --test)
 e2e/                      browser smoke tests (Playwright; settings in playwright.config.ts)
