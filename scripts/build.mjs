@@ -17,7 +17,7 @@
 // ES modules directly.
 
 import { execFileSync } from "node:child_process"
-import { cpSync, existsSync, mkdirSync, rmSync } from "node:fs"
+import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { createRequire } from "node:module"
 import { dirname, join, relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -61,8 +61,19 @@ if (!appOnly) {
 rmSync(join(dist, "app"), { recursive: true, force: true })
 rmSync(join(dist, "vendor"), { recursive: true, force: true })
 
+// The app imports only super-ts's main entry point, so compile just
+// src/index.ts and what it imports, with super-ts's own build options.  Other
+// parts of super-ts, e.g., its Zod integration (src/zod.ts), need packages
+// that SuperLens doesn't install.
+const superTSConfig = join(root, "node_modules/.cache/superlens/tsconfig.super-ts.json")
+mkdirSync(dirname(superTSConfig), { recursive: true })
+writeFileSync(superTSConfig, JSON.stringify({
+  extends: join(superTS, "tsconfig.build.json"),
+  include: [],
+  files: [join(superTS, "src/index.ts")],
+}))
 console.log(`compiling super-ts from ${superTS}`)
-tsc(["-p", join(superTS, "tsconfig.build.json"), "--outDir", join(dist, "vendor/super-ts"), "--sourceMap", "false"])
+tsc(["-p", superTSConfig, "--outDir", join(dist, "vendor/super-ts"), "--sourceMap", "false"])
 
 console.log("compiling the app")
 tsc(["-p", join(root, "tsconfig.json")])

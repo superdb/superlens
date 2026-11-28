@@ -203,7 +203,8 @@ npm run serve        # serves dist/ at http://localhost:8080/
    repo (`scripts/build-wasm.sh`), so it uses that checkout and its `go.mod`.
    It also copies Go's `wasm_exec.js` into `dist/`. This step takes a minute
    or so and, the first time, needs the network to download Go modules.
-2. Compiles super-ts from `SUPER_TS` into `dist/vendor/super-ts/`.
+2. Compiles super-ts's main entry point (`src/index.ts` and what it imports)
+   from `SUPER_TS` into `dist/vendor/super-ts/`.
 3. Compiles the app from `src/` into `dist/app/`, pointing its super-ts
    imports at the vendored copy.
 4. Copies `public/` (the HTML, CSS, icon, font, sample data, and `_headers`) into
